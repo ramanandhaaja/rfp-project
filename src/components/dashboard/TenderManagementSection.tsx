@@ -13,13 +13,13 @@ interface TenderDocument {
   categories: string[];
   cpvCode: string;
   createdAt: string;
-  requirements?: Record<string, any>;
-  specifications?: Record<string, any>;
-  evaluationCriteria?: Record<string, any>;
-  budgetInfo?: Record<string, any>;
-  deadlines?: Record<string, any>;
-  contactInfo?: Record<string, any>;
-  extractedSections?: Record<string, any>;
+  requirements?: Record<string, unknown>;
+  specifications?: Record<string, unknown>;
+  evaluationCriteria?: Record<string, unknown>;
+  budgetInfo?: Record<string, unknown>;
+  deadlines?: Record<string, unknown>;
+  contactInfo?: Record<string, unknown>;
+  extractedSections?: Record<string, unknown>;
 }
 
 interface QuestionPriority {
@@ -97,7 +97,7 @@ interface TenderAnalysis {
 interface UploadResult {
   success: boolean;
   tender?: TenderDocument;
-  analysis?: any;
+  analysis?: Record<string, unknown>;
   summary?: string;
   error?: string;
 }
@@ -127,7 +127,7 @@ export default function TenderManagementSection() {
       // This is a simple approach - in a real app you might want a dedicated endpoint
       const response = await fetch('/api/tenders/import');
       if (response.ok) {
-        const data = await response.json();
+        await response.json();
         // For now, we'll check analysis when needed.
         // You could add an endpoint to get analysis status for all tenders
       }
@@ -568,7 +568,7 @@ export default function TenderManagementSection() {
 
                     {(!tender.requirements && !tender.budgetInfo && !tender.evaluationCriteria) && (
                       <div className="text-sm text-gray-500 italic">
-                        Click "Analyze Fit" to see detailed requirements, budget info, and competitive analysis.
+                        Click &quot;Analyze Fit&quot; to see detailed requirements, budget info, and competitive analysis.
                       </div>
                     )}
                   </div>
@@ -639,7 +639,7 @@ export default function TenderManagementSection() {
               <h4 className="font-medium text-indigo-700 mb-2">🔗 Matching Products</h4>
               {analysis.matchingProducts && analysis.matchingProducts.length > 0 ? (
                 <div className="space-y-2">
-                  {analysis.matchingProducts.map((product: any, index: number) => (
+                  {(analysis.matchingProducts as Array<{name: string; category: string; features: string[]; description: string}>).map((product, index: number) => (
                     <div key={index} className="bg-indigo-50 p-3 rounded-lg border border-indigo-200">
                       <div className="flex justify-between items-start mb-2">
                         <h5 className="font-medium text-indigo-800">{product.name}</h5>

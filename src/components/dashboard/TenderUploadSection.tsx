@@ -157,7 +157,7 @@ export default function TenderUploadSection() {
     }
   }
 
-  const handleNewTender = (tenderData: any) => {
+  const handleNewTender = (tenderData: {name: string; client: string; submissionDeadline: string; estimatedValue: string; description: string; documents?: Array<{name: string; type: string; size: string}>}) => {
     const newTender: TenderProject = {
       id: `tender-${Date.now()}`,
       name: tenderData.name,
@@ -168,7 +168,7 @@ export default function TenderUploadSection() {
       createdDate: new Date().toISOString().split('T')[0],
       description: tenderData.description,
       analysisStatus: "not_started",
-      documents: tenderData.documents?.map((doc: any, index: number) => ({
+      documents: tenderData.documents?.map((doc, index: number) => ({
         id: `doc-${Date.now()}-${index}`,
         name: doc.name,
         type: doc.type,
