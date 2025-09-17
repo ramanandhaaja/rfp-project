@@ -30,7 +30,7 @@ interface LegalAnalysisResult {
   applicable_articles: Array<{
     article: string;
     title: string;
-    status: 'Met' | 'Partially Met' | 'Not Met' | 'Not Applicable';
+    status: 'Met' | 'Partially Met' | 'Not Met' | 'Not Applicable' | 'Requires Review';
     requirements: string[];
     recommendations: string[];
     risk_level: string;

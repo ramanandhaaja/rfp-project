@@ -508,7 +508,7 @@ export default function TenderManagementSection() {
                     )}
 
                     {/* Evaluation Criteria */}
-                    {tender.evaluationCriteria && Object.keys(tender.evaluationCriteria).length > 0 && (
+                    {Boolean(tender.evaluationCriteria && Object.keys(tender.evaluationCriteria).length > 0) && (
                       <div>
                         <h5 className="font-medium text-gray-900 mb-2">Evaluation Criteria</h5>
                         <div className="bg-blue-50 p-3 rounded text-sm space-y-1">
