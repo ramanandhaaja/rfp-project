@@ -562,7 +562,7 @@ function safeJsonParse(jsonString: string, fallback: any = {}): any {
         }
 
         // Extract phases array if it exists
-        const phasesMatch = jsonString.match(/"phases":\s*\[(.*?)\]/s);
+        const phasesMatch = jsonString.match(/"phases":\s*\[([\s\S]*?)\]/);
         if (phasesMatch) {
           try {
             const phasesStr = '[' + phasesMatch[1] + ']';
@@ -574,7 +574,7 @@ function safeJsonParse(jsonString: string, fallback: any = {}): any {
         }
 
         // Extract team array if it exists
-        const teamMatch = jsonString.match(/"team":\s*\[(.*?)\]/s);
+        const teamMatch = jsonString.match(/"team":\s*\[([\s\S]*?)\]/);
         if (teamMatch) {
           try {
             const teamStr = '[' + teamMatch[1] + ']';
@@ -586,7 +586,7 @@ function safeJsonParse(jsonString: string, fallback: any = {}): any {
         }
 
         // Extract risks array if it exists
-        const risksMatch = jsonString.match(/"risks":\s*\[(.*?)\]/s);
+        const risksMatch = jsonString.match(/"risks":\s*\[([\s\S]*?)\]/);
         if (risksMatch) {
           try {
             const risksStr = '[' + risksMatch[1] + ']';
