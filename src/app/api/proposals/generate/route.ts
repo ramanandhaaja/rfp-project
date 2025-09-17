@@ -550,7 +550,7 @@ function safeJsonParse(jsonString: string, fallback: any = {}): any {
         }
 
         // Extract table array if it exists
-        const tableMatch = jsonString.match(/"table":\s*\[(.*?)\]/s);
+        const tableMatch = jsonString.match(/"table":\s*\[([\s\S]*?)\]/);
         if (tableMatch) {
           try {
             const tableStr = '[' + tableMatch[1] + ']';
