@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx:*)",
+      "Bash(npm install:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(gh repo create:*)",
+      "WebFetch(domain:blifnoqqgyhnrruifnvf.supabase.co)",
+      "WebFetch(domain:www.tenderbolt.ai)",
+      "Bash(npm run lint)",
+      "mcp__supabase__list_projects",
+      "mcp__supabase__apply_migration",
+      "mcp__supabase__get_project",
+      "Read(//Users/nandha/Downloads/**)",
+      "Bash(npm uninstall:*)",
+      "mcp__supabase__execute_sql",
+      "Bash(git init:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
