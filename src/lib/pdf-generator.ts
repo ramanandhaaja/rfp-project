@@ -57,7 +57,7 @@ export function generateProposalPDF(proposal: GeneratedProposal, tender: TenderD
     const lines = pdf.splitTextToSize(text, maxWidth);
     const lineHeight = fontSize * 0.4;
 
-    lines.forEach((line: string, index: number) => {
+    lines.forEach((line: string) => {
       checkPageBreak(lineHeight);
       pdf.text(line, x, yPosition);
       yPosition += lineHeight;
@@ -166,7 +166,7 @@ export function generateProposalPDF(proposal: GeneratedProposal, tender: TenderD
   pdf.save(fileName);
 }
 
-function addExecutiveSummaryTable(pdf: jsPDF, data: any[], x: number, startY: number, maxWidth: number) {
+function addExecutiveSummaryTable(pdf: jsPDF, data: Array<{requirement: string; solution: string; benefit: string}>, x: number, startY: number, maxWidth: number) {
   const cellWidth = maxWidth / 3;
   const cellHeight = 8;
   let y = startY;
@@ -216,7 +216,7 @@ function addExecutiveSummaryTable(pdf: jsPDF, data: any[], x: number, startY: nu
   });
 }
 
-function addMethodologyTable(pdf: jsPDF, data: any[], x: number, startY: number, maxWidth: number) {
+function addMethodologyTable(pdf: jsPDF, data: Array<{phase: string; activities: string; deliverables: string}>, x: number, startY: number, maxWidth: number) {
   const cellWidth = maxWidth / 3;
   const cellHeight = 8;
   let y = startY;
@@ -266,7 +266,7 @@ function addMethodologyTable(pdf: jsPDF, data: any[], x: number, startY: number,
   });
 }
 
-function addTeamTable(pdf: jsPDF, data: any[], x: number, startY: number, maxWidth: number) {
+function addTeamTable(pdf: jsPDF, data: Array<{role: string; profile: string; responsibility: string}>, x: number, startY: number, maxWidth: number) {
   const cellWidth = maxWidth / 3;
   const cellHeight = 8;
   let y = startY;
@@ -316,7 +316,7 @@ function addTeamTable(pdf: jsPDF, data: any[], x: number, startY: number, maxWid
   });
 }
 
-function addRiskTable(pdf: jsPDF, data: any[], x: number, startY: number, maxWidth: number) {
+function addRiskTable(pdf: jsPDF, data: Array<{risk: string; impact: string; mitigation: string}>, x: number, startY: number, maxWidth: number) {
   const cellWidth = maxWidth / 3;
   const cellHeight = 8;
   let y = startY;

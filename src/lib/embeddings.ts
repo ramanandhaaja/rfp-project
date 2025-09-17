@@ -12,7 +12,7 @@ export interface EmbeddingMetadata {
   content: string;
   userId: string;
   createdAt: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface CompanyEmbeddingData {
@@ -38,8 +38,8 @@ export interface TenderEmbeddingData {
   id: string;
   title: string;
   description: string;
-  requirements: Record<string, any>;
-  specifications: Record<string, any>;
+  requirements: Record<string, unknown>;
+  specifications: Record<string, unknown>;
   categories: string[];
   municipalities: string[];
   cpvCode: string;

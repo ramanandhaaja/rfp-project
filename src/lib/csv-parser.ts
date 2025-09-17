@@ -4,8 +4,9 @@ export interface CSVProduct {
   name: string;
   category: string;
   description: string;
-  specifications: Record<string, any>;
+  specifications: Record<string, unknown>;
   features: string[];
+  [key: string]: unknown;
   powerRange?: string;
   lightOutput?: string;
   efficiency?: string;
@@ -69,7 +70,7 @@ export function parseProductsCSV(csvText: string): Promise<CSVProduct[]> {
       transform: (value: string) => value.trim(),
       complete: (results) => {
         try {
-          const products: CSVProduct[] = results.data.map((row: any) => {
+          const products: CSVProduct[] = (results.data as Record<string, string>[]).map((row: Record<string, string>) => {
             const product: CSVProduct = {
               name: row[Object.keys(COLUMN_MAPPING)[0]] || 'Unknown Product',
               category: 'LED Lighting', // Default category for lighting products
@@ -91,7 +92,7 @@ export function parseProductsCSV(csvText: string): Promise<CSVProduct[]> {
                 product.specifications[productField] = value;
 
                 // Also store in direct property for easy access
-                (product as any)[productField] = value;
+                product[productField] = value;
               }
             });
 
@@ -105,14 +106,14 @@ export function parseProductsCSV(csvText: string): Promise<CSVProduct[]> {
             ].filter(Boolean);
 
             product.features = featureFields.flatMap(field =>
-              field.split(/[,;\/]/).map(f => f.trim()).filter(f => f.length > 0)
+              field ? field.split(/[,;\/]/).map(f => f.trim()).filter(f => f.length > 0) : []
             );
 
             return product;
           });
 
           resolve(products.filter(p => p.name && p.name !== 'Unknown Product'));
-        } catch (error) {
+        } catch (error: unknown) {
           reject(error);
         }
       },
@@ -123,7 +124,7 @@ export function parseProductsCSV(csvText: string): Promise<CSVProduct[]> {
   });
 }
 
-function generateProductDescription(row: any): string {
+function generateProductDescription(row: Record<string, string>): string {
   const name = row[Object.keys(COLUMN_MAPPING)[0]] || 'Product';
   const powerRange = row['Vermogensbereik (W)'];
   const lightOutput = row['Lichtstroom (lm)'];
@@ -166,7 +167,7 @@ export function validateCSVStructure(csvText: string): { valid: boolean; error?:
     }
 
     return { valid: true, headers };
-  } catch (error) {
+  } catch {
     return { valid: false, error: 'Invalid CSV format' };
   }
 }
