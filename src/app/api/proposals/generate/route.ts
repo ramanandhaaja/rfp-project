@@ -533,7 +533,7 @@ function safeJsonParse(jsonString: string, fallback: any = {}): any {
         const result: any = {};
 
         // Extract content field - handle multiline content better
-        const contentMatch = jsonString.match(/"content":\s*"(.*?)(?=",\s*"|\n\s*"|\n\s*})/s);
+        const contentMatch = jsonString.match(/"content":\s*"([\s\S]*?)(?=",\s*"|\n\s*"|\n\s*})/);
         if (contentMatch) {
           result.content = contentMatch[1]
             .replace(/\\n/g, '\n')
