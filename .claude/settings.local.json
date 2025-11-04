@@ -15,7 +15,8 @@
       "Read(//Users/nandha/Downloads/**)",
       "Bash(npm uninstall:*)",
       "mcp__supabase__execute_sql",
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

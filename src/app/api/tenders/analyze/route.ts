@@ -136,6 +136,10 @@ Power Range: ${p.specifications?.powerRange || 'Not specified'}W
 Light Output: ${p.specifications?.lightOutput || 'Not specified'} lumens
 Efficiency: ${p.specifications?.efficiency || 'Not specified'} lm/W
 IP Rating: ${p.specifications?.ipRating || 'Not specified'}
+Dimensions: ${p.specifications?.dimensions || 'Not specified'}
+Housing/Shape: ${p.specifications?.housing || 'Not specified'}
+Mounting: ${p.specifications?.mounting || 'Not specified'}
+Optics: ${p.specifications?.optics || 'Not specified'}
 Certifications: ${p.specifications?.certifications || p.compliance_standards?.join(', ') || 'Not specified'}
 Features: ${p.features?.join(', ') || 'Not specified'}
 Description: ${p.description}
@@ -150,14 +154,18 @@ Return JSON with the top 3-5 matching products:
       "lightOutput": "X-Y lumens",
       "efficiency": "X lm/W",
       "ipRating": "IPXX",
+      "dimensions": "dimensions in mm",
+      "housing": "housing/shape type",
+      "mounting": "mounting options",
+      "optics": "optical characteristics",
       "certifications": "CE, RoHS, etc",
       "matchScore": 85,
-      "whyMatch": "Specific explanation of why this product matches the requirements"
+      "whyMatch": "Specific explanation of why this product matches the requirements, including shape/physical compatibility"
     }
   ]
 }
 
-Focus on specific technical matches between tender requirements and product specifications.
+Focus on specific technical matches between tender requirements and product specifications, including physical dimensions, shape/housing compatibility, and mounting requirements.
 `;
 
     // Generate AI analysis comparing tender requirements with capabilities

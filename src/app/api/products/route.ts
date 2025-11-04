@@ -85,6 +85,7 @@ export async function POST(request: NextRequest) {
         category: product.category || '',
         description: product.description || '',
         features: product.features || [],
+        specifications: product.specifications || {},
         companyId: product.company_id,
         userId: user.id,
       }).catch((error) => {

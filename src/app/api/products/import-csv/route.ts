@@ -121,6 +121,7 @@ export async function POST(request: NextRequest) {
             category: insertedProduct.category || '',
             description: insertedProduct.description || '',
             features: insertedProduct.features || [],
+            specifications: insertedProduct.specifications || {},
             companyId: insertedProduct.company_id,
             userId: user.id,
           }).catch((error) => {

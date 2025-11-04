@@ -253,7 +253,7 @@ Analyze thoroughly using all 12 lenses. Focus on identifying risks, ambiguities,
         }
       ],
       temperature: 0.1,
-      max_tokens: 100000,
+      max_tokens: 4096,
     });
 
     const content = response.choices[0]?.message?.content;

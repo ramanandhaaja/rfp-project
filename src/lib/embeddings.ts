@@ -30,6 +30,13 @@ export interface ProductEmbeddingData {
   category: string;
   description: string;
   features: string[];
+  specifications?: {
+    housing?: string;
+    dimensions?: string;
+    mounting?: string;
+    optics?: string;
+    [key: string]: unknown;
+  };
   companyId: string;
   userId: string;
 }
@@ -106,12 +113,17 @@ export async function createProductEmbedding(productData: ProductEmbeddingData) 
   try {
     const index = await getOrCreateIndex();
 
-    // Combine product information for embedding
+    // Combine product information for embedding including shape/physical characteristics
     const textToEmbed = [
       productData.name,
       productData.category,
       productData.description,
       ...(productData.features || []),
+      // Include shape and physical characteristics for better semantic matching
+      productData.specifications?.housing ? `Housing: ${productData.specifications.housing}` : null,
+      productData.specifications?.dimensions ? `Dimensions: ${productData.specifications.dimensions}` : null,
+      productData.specifications?.mounting ? `Mounting: ${productData.specifications.mounting}` : null,
+      productData.specifications?.optics ? `Optics: ${productData.specifications.optics}` : null,
     ].filter(Boolean).join(' ');
 
     const embedding = await generateEmbedding(textToEmbed);

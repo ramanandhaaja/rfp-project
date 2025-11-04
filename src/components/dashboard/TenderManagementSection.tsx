@@ -82,6 +82,10 @@ interface TenderAnalysis {
     lightOutput: string;
     efficiency: string;
     ipRating?: string;
+    dimensions?: string;
+    housing?: string;
+    mounting?: string;
+    optics?: string;
     certifications?: string;
     matchScore: number;
     whyMatch?: string;
@@ -507,6 +511,63 @@ export default function TenderManagementSection() {
                       </div>
                     )}
 
+                    {/* Physical Specifications & Shape */}
+                    {tender.specifications && Object.keys(tender.specifications).length > 0 && (
+                      <div>
+                        <h5 className="font-medium text-gray-900 mb-2">Physical Specifications & Shape Requirements</h5>
+                        <div className="bg-indigo-50 p-3 rounded text-sm space-y-2">
+                          {/* Shape-specific fields */}
+                          {(tender.specifications as Record<string, unknown>).dimensions && (
+                            <div className="border-l-2 border-indigo-300 pl-2">
+                              <span className="font-medium text-indigo-700">Dimensions:</span>{' '}
+                              <span className="text-gray-700">{String((tender.specifications as Record<string, unknown>).dimensions)}</span>
+                            </div>
+                          )}
+                          {(tender.specifications as Record<string, unknown>).housing && (
+                            <div className="border-l-2 border-indigo-300 pl-2">
+                              <span className="font-medium text-indigo-700">Housing/Shape:</span>{' '}
+                              <span className="text-gray-700">{String((tender.specifications as Record<string, unknown>).housing)}</span>
+                            </div>
+                          )}
+                          {(tender.specifications as Record<string, unknown>).mounting && (
+                            <div className="border-l-2 border-indigo-300 pl-2">
+                              <span className="font-medium text-indigo-700">Mounting Requirements:</span>{' '}
+                              <span className="text-gray-700">{String((tender.specifications as Record<string, unknown>).mounting)}</span>
+                            </div>
+                          )}
+                          {(tender.specifications as Record<string, unknown>).optics && (
+                            <div className="border-l-2 border-indigo-300 pl-2">
+                              <span className="font-medium text-indigo-700">Optics:</span>{' '}
+                              <span className="text-gray-700">{String((tender.specifications as Record<string, unknown>).optics)}</span>
+                            </div>
+                          )}
+                          {(tender.specifications as Record<string, unknown>).weight && (
+                            <div className="border-l-2 border-indigo-300 pl-2">
+                              <span className="font-medium text-indigo-700">Weight:</span>{' '}
+                              <span className="text-gray-700">{String((tender.specifications as Record<string, unknown>).weight)}</span>
+                            </div>
+                          )}
+                          {/* Other specifications */}
+                          {Object.entries(tender.specifications as Record<string, unknown>).map(([key, value]) => {
+                            // Skip the ones we've already displayed above
+                            if (['dimensions', 'housing', 'mounting', 'optics', 'weight'].includes(key)) {
+                              return null;
+                            }
+                            return (
+                              <div key={key} className="border-l-2 border-indigo-200 pl-2">
+                                <span className="font-medium text-indigo-600 capitalize">
+                                  {key.replace(/([A-Z])/g, ' $1')}:
+                                </span>{' '}
+                                <span className="text-gray-700">
+                                  {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Evaluation Criteria */}
                     {/* @ts-expect-error - TypeScript incorrectly flags Record<string, unknown> as potentially renderable */}
                     {tender.evaluationCriteria && Object.keys(tender.evaluationCriteria).length > 0 ? (
@@ -654,6 +715,18 @@ export default function TenderManagementSection() {
                         <div><span className="font-medium">Efficiency:</span> {product.efficiency} lm/W</div>
                         {product.ipRating && (
                           <div><span className="font-medium">Protection:</span> {product.ipRating}</div>
+                        )}
+                        {product.dimensions && (
+                          <div><span className="font-medium">Dimensions:</span> {product.dimensions}</div>
+                        )}
+                        {product.housing && (
+                          <div><span className="font-medium">Housing/Shape:</span> {product.housing}</div>
+                        )}
+                        {product.mounting && (
+                          <div><span className="font-medium">Mounting:</span> {product.mounting}</div>
+                        )}
+                        {product.optics && (
+                          <div><span className="font-medium">Optics:</span> {product.optics}</div>
                         )}
                         {product.certifications && (
                           <div><span className="font-medium">Certified:</span> {product.certifications}</div>
