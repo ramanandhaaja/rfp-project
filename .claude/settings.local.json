@@ -16,7 +16,13 @@
       "Bash(npm uninstall:*)",
       "mcp__supabase__execute_sql",
       "Bash(git init:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(for file in products/route.ts products/import-csv/route.ts proposals/generate/route.ts proposals/get/route.ts tenders/import/route.ts tenders/legal-analysis/route.ts)",
+      "Bash(do)",
+      "Bash(perl -i -0pe:*)",
+      "Bash(done)",
+      "Bash(for file in src/app/api/products/route.ts src/app/api/products/import-csv/route.ts src/app/api/proposals/generate/route.ts src/app/api/proposals/get/route.ts src/app/api/tenders/import/route.ts src/app/api/tenders/legal-analysis/route.ts)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []
