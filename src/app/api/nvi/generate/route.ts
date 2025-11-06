@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getUserById } from '@/lib/supabase';
-import { getSupabaseClient } from '@/lib/supabase-server';
+import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder-key"
+);
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
