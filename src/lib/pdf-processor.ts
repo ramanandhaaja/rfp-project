@@ -159,10 +159,16 @@ Extract structured information and identify critical issues using professional t
     "financial": "Financial capacity requirements"
   },
   "specifications": {
-    "products": "Product specifications",
-    "standards": "Required standards with measurement conditions",
-    "tools": "Calculation tools and models required",
-    "delivery": "Delivery and SLA requirements"
+    "products": "Product specifications (e.g., Kofferarmaturen, paaltoparmaturen)",
+    "shape": "Physical shape description (e.g., round, square, rectangular, cylindrical, box-shaped, flat, curved). Extract from product names like 'kofferarmaturen' (box/trunk-shaped), 'paaltoparmaturen' (pole-top/cylindrical), 'bolderarmaturen' (spherical/round)",
+    "housing": "Housing/casing type and material (e.g., cylindrical aluminum, square plastic, weatherproof enclosure)",
+    "dimensions": "Physical dimensions if specified (e.g., 300 x 200 x 100 mm, diameter 250mm)",
+    "mounting": "Mounting requirements (e.g., wall-mounted, ceiling-mounted, pole-mounted, recessed)",
+    "optics": "Optical requirements (e.g., wide beam, narrow beam, asymmetric distribution, 120° beam angle)",
+    "weight": "Weight specifications if mentioned",
+    "standards": "Required standards with measurement conditions (IEC, NEN, EN, ANSI, ISO, ENEC)",
+    "tools": "Calculation tools and models required (e.g., EVO-bestanden, Dialux)",
+    "delivery": "Delivery and spare parts requirements"
   },
   "evaluationCriteria": {
     "price": "Price weighting percentage and calculation method",
@@ -233,10 +239,41 @@ Extract structured information and identify critical issues using professional t
 
 Questions with totalScore ≥6 are HIGH PRIORITY for NvI submission.
 
+## IMPORTANT: SHAPE EXTRACTION GUIDANCE
+
+When extracting physical specifications, pay special attention to shape information:
+
+**Dutch Product Names → Shape Translation:**
+- "Kofferarmaturen" / "Kofferlampen" → Box-shaped / Rectangular / Trunk-shaped
+- "Paaltoparmaturen" / "Paalverlichting" → Cylindrical / Pole-top / Round
+- "Bolderarmaturen" / "Bollampen" → Spherical / Globe / Round
+- "Wandarmaturen" → Wall-mounted (note mounting + typical shape)
+- "Schemerarmaturen" → Recessed/flush (note mounting style)
+- "Plafonnières" → Ceiling-mounted (typically flat/disc-shaped)
+
+**Shape Keywords to Detect:**
+- Round/circular: "rond", "cirkelvormig", "bolvorming", "globe"
+- Square/rectangular: "vierkant", "rechthoekig", "koffer", "box"
+- Cylindrical: "cilindervormig", "paaltop", "tubular"
+- Flat/disc: "plat", "schijfvormig", "disc"
+- Linear/bar: "lineair", "balk", "strip"
+
+**Extract from:**
+1. Product type names (armatuurtype)
+2. Technical drawings descriptions
+3. Housing specifications (behuizing)
+4. Mounting method implications (montage suggests typical shapes)
+5. Aesthetic requirements
+
+**Always include in specifications.shape field:**
+- Primary shape descriptor (round/square/rectangular/cylindrical/etc.)
+- Secondary details from housing/mounting if relevant
+- Material if it affects shape (e.g., "cylindrical aluminum housing")
+
 Tender document text:
 ${pdfText}
 
-Analyze thoroughly using all 12 lenses. Focus on identifying risks, ambiguities, and question-worthy issues that require clarification.
+Analyze thoroughly using all 12 lenses. Focus on identifying risks, ambiguities, and question-worthy issues that require clarification. Pay special attention to extracting detailed shape and physical specification information from product names and technical requirements.
 `;
 
   try {
@@ -245,7 +282,7 @@ Analyze thoroughly using all 12 lenses. Focus on identifying risks, ambiguities,
       messages: [
         {
           role: 'system',
-          content: 'You are an expert in analyzing procurement and tender documents. Extract key information accurately and structure it as requested. Always return valid JSON.'
+          content: 'You are an expert in analyzing procurement and tender documents. Extract key information accurately and structure it as requested. CRITICAL: Return ONLY valid JSON with no additional commentary, explanations, or text before or after the JSON object. Your entire response must be parseable as JSON.'
         },
         {
           role: 'user',
@@ -254,6 +291,7 @@ Analyze thoroughly using all 12 lenses. Focus on identifying risks, ambiguities,
       ],
       temperature: 0.1,
       max_tokens: 4096,
+      response_format: { type: 'json_object' },
     });
 
     const content = response.choices[0]?.message?.content;
@@ -271,8 +309,41 @@ Analyze thoroughly using all 12 lenses. Focus on identifying risks, ambiguities,
       cleanContent = cleanContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
     }
 
-    const analysis = JSON.parse(cleanContent) as TenderAnalysis;
-    return analysis;
+    // Try to extract just the JSON object if there's extra content
+    // Find the first { and the matching closing }
+    const firstBrace = cleanContent.indexOf('{');
+    if (firstBrace !== -1) {
+      let braceCount = 0;
+      let lastBrace = -1;
+
+      for (let i = firstBrace; i < cleanContent.length; i++) {
+        if (cleanContent[i] === '{') {
+          braceCount++;
+        } else if (cleanContent[i] === '}') {
+          braceCount--;
+          if (braceCount === 0) {
+            lastBrace = i;
+            break;
+          }
+        }
+      }
+
+      if (lastBrace !== -1) {
+        cleanContent = cleanContent.substring(firstBrace, lastBrace + 1);
+      }
+    }
+
+    // Try to parse the cleaned JSON
+    try {
+      const analysis = JSON.parse(cleanContent) as TenderAnalysis;
+      return analysis;
+    } catch (parseError) {
+      // Log the problematic content for debugging
+      console.error('Failed to parse JSON. Content length:', cleanContent.length);
+      console.error('First 500 chars:', cleanContent.substring(0, 500));
+      console.error('Last 500 chars:', cleanContent.substring(Math.max(0, cleanContent.length - 500)));
+      throw parseError;
+    }
   } catch (error) {
     console.error('Error analyzing tender with LLM:', error);
     throw new Error('Failed to analyze tender document with AI');

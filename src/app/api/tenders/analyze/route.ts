@@ -125,47 +125,74 @@ export async function POST(request: NextRequest) {
     const productMatchingPrompt = `
 Analyze the tender requirements and match them with specific products from the user's catalog.
 
+CRITICAL MATCHING CRITERIA:
+1. Shape compatibility (MUST match - e.g., if tender requires "kofferarmaturen" (box-shaped), products must be box-shaped/rectangular)
+2. Physical dimensions (must fit requirements)
+3. Mounting compatibility (wall/ceiling/pole must match)
+4. Technical specifications (power, light output, efficiency, IP rating)
+5. Certifications and standards compliance
+
 TENDER REQUIREMENTS:
 ${JSON.stringify(tender.requirements, null, 2)}
+
+TENDER PHYSICAL SPECIFICATIONS (CRITICAL FOR MATCHING):
+Shape Required: ${tender.specifications?.shape || 'Not specified'}
+Housing Type: ${tender.specifications?.housing || 'Not specified'}
+Dimensions: ${tender.specifications?.dimensions || 'Not specified'}
+Mounting: ${tender.specifications?.mounting || 'Not specified'}
+Products Specified: ${tender.specifications?.products || 'Not specified'}
+
+FULL TENDER SPECIFICATIONS:
 ${JSON.stringify(tender.specifications, null, 2)}
 
-AVAILABLE PRODUCTS:
+AVAILABLE PRODUCTS FROM USER'S CATALOG:
 ${products.data?.map(p => `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Product: ${p.name}
-Power Range: ${p.specifications?.powerRange || 'Not specified'}W
-Light Output: ${p.specifications?.lightOutput || 'Not specified'} lumens
-Efficiency: ${p.specifications?.efficiency || 'Not specified'} lm/W
-IP Rating: ${p.specifications?.ipRating || 'Not specified'}
-Dimensions: ${p.specifications?.dimensions || 'Not specified'}
-Housing/Shape: ${p.specifications?.housing || 'Not specified'}
-Mounting: ${p.specifications?.mounting || 'Not specified'}
-Optics: ${p.specifications?.optics || 'Not specified'}
-Certifications: ${p.specifications?.certifications || p.compliance_standards?.join(', ') || 'Not specified'}
-Features: ${p.features?.join(', ') || 'Not specified'}
+SHAPE/PHYSICAL:
+  - Housing/Shape: ${p.specifications?.housing || 'Not specified'}
+  - Dimensions: ${p.specifications?.dimensions || 'Not specified'}
+  - Mounting: ${p.specifications?.mounting || 'Not specified'}
+  - Optics: ${p.specifications?.optics || 'Not specified'}
+TECHNICAL:
+  - Power Range: ${p.specifications?.powerRange || 'Not specified'}W
+  - Light Output: ${p.specifications?.lightOutput || 'Not specified'} lumens
+  - Efficiency: ${p.specifications?.efficiency || 'Not specified'} lm/W
+  - IP Rating: ${p.specifications?.ipRating || 'Not specified'}
+COMPLIANCE:
+  - Certifications: ${p.specifications?.certifications || p.compliance_standards?.join(', ') || 'Not specified'}
+  - Features: ${p.features?.join(', ') || 'Not specified'}
 Description: ${p.description}
 `).join('\n') || 'No products found'}
 
-Return JSON with the top 3-5 matching products:
+MATCHING INSTRUCTIONS:
+- FIRST check shape/physical compatibility (if tender specifies "kofferarmaturen", only match box-shaped products; if "paaltoparmaturen", only match cylindrical/pole-top products)
+- If shape is incompatible, assign low match score (<50%) and explain shape mismatch
+- If shape matches, then evaluate technical specs, dimensions, mounting, and certifications
+- Include shape compatibility explicitly in "whyMatch" explanation
+- Penalize products that don't match the required shape even if technical specs are good
+
+Return JSON with the top 3-5 matching products (or fewer if shape mismatch):
 {
   "matchingProducts": [
     {
       "name": "Product name",
-      "powerRange": "X-Y",
+      "powerRange": "X-Y W",
       "lightOutput": "X-Y lumens",
       "efficiency": "X lm/W",
       "ipRating": "IPXX",
       "dimensions": "dimensions in mm",
-      "housing": "housing/shape type",
+      "housing": "housing/shape type (e.g., box-shaped, cylindrical, spherical)",
       "mounting": "mounting options",
       "optics": "optical characteristics",
       "certifications": "CE, RoHS, etc",
       "matchScore": 85,
-      "whyMatch": "Specific explanation of why this product matches the requirements, including shape/physical compatibility"
+      "whyMatch": "MUST include shape compatibility assessment first, then technical match. Example: 'Shape: Box-shaped housing matches tender requirement for kofferarmaturen. Technical: Power range 50-100W fits requirement, IP65 exceeds IP54 minimum, 120lm/W efficiency meets spec.'"
     }
   ]
 }
 
-Focus on specific technical matches between tender requirements and product specifications, including physical dimensions, shape/housing compatibility, and mounting requirements.
+REMEMBER: Shape mismatch is a critical failure. If tender requires box-shaped (kofferarmaturen) but product is cylindrical (paaltoparmaturen), this is incompatible regardless of other specs.
 `;
 
     // Generate AI analysis comparing tender requirements with capabilities
@@ -176,7 +203,15 @@ TENDER INFORMATION:
 Title: ${tender.title}
 Description: ${tender.description}
 Requirements: ${JSON.stringify(tender.requirements, null, 2)}
-Specifications: ${JSON.stringify(tender.specifications, null, 2)}
+
+TENDER PHYSICAL/SHAPE REQUIREMENTS (CRITICAL):
+Shape Required: ${tender.specifications?.shape || 'Not specified'}
+Housing Type: ${tender.specifications?.housing || 'Not specified'}
+Products Specified: ${tender.specifications?.products || 'Not specified'} (e.g., "Kofferarmaturen" = box-shaped, "Paaltoparmaturen" = cylindrical)
+Dimensions: ${tender.specifications?.dimensions || 'Not specified'}
+Mounting: ${tender.specifications?.mounting || 'Not specified'}
+
+Full Specifications: ${JSON.stringify(tender.specifications, null, 2)}
 Evaluation Criteria: ${JSON.stringify(tender.evaluation_criteria, null, 2)}
 Budget: ${JSON.stringify(tender.budget_info, null, 2)}
 
@@ -189,36 +224,83 @@ Capabilities: ${c.capabilities?.join(', ')}
 Certifications: ${c.certifications?.join(', ')}
 `).join('\n') || 'No companies found'}
 
-USER'S PRODUCTS:
+USER'S PRODUCTS (with shape information):
 ${products.data?.map(p => `
 Product: ${p.name}
 Category: ${p.category}
-Description: ${p.description}
+Shape/Housing: ${p.specifications?.housing || 'Not specified'}
+Physical Specs: Dimensions ${p.specifications?.dimensions || 'N/A'}, Mounting ${p.specifications?.mounting || 'N/A'}
+Technical Specs: ${JSON.stringify(p.specifications)}
 Features: ${p.features?.join(', ')}
-Specifications: ${JSON.stringify(p.specifications)}
+Description: ${p.description}
 `).join('\n') || 'No products found'}
 
 VECTOR SEARCH RELEVANCE SCORES:
 Companies: ${relevantCapabilities.companies.map(c => `${c.metadata?.title}: ${c.score?.toFixed(3)}`).join(', ')}
 Products: ${relevantCapabilities.products.map(p => `${p.metadata?.title}: ${p.score?.toFixed(3)}`).join(', ')}
 
+IMPORTANT ANALYSIS GUIDELINES:
+1. Check shape compatibility FIRST - if tender specifies "Kofferarmaturen" (box-shaped) and user only has cylindrical products, this is a CRITICAL GAP
+2. Shape mismatch should significantly lower the overall match percentage
+3. Include shape compatibility in strengths (if match) or gaps (if mismatch)
+4. Consider both exact shape matches and "equivalent" options if justified
+
 Please provide a detailed analysis in JSON format with the following structure:
 {
-  "overallMatch": "percentage match (0-100)",
+  "overallMatch": "percentage match (0-100) - REDUCE if shape mismatch exists",
   "competitiveness": "High/Medium/Low",
   "recommendation": "Should bid / Consider bidding / Don't bid",
-  "strengths": ["List of user's strengths for this tender - include specific product names when mentioning capabilities"],
-  "gaps": ["Requirements the user cannot meet"],
-  "opportunities": ["Areas where user has competitive advantage"],
-  "risks": ["Potential challenges or risks"],
-  "actionItems": ["Specific steps to improve bid chances"],
+  "strengths": ["List strengths - MUST include shape compatibility if products match (e.g., 'Box-shaped products (kofferarmaturen) match tender requirements perfectly'). Include specific product names."],
+  "gaps": ["Requirements the user cannot meet - MUST include shape mismatch if exists (e.g., 'Tender requires cylindrical paaltoparmaturen but user only has box-shaped kofferarmaturen')"],
+  "opportunities": ["Areas where user has competitive advantage - can include superior shape/physical design"],
+  "risks": ["Potential challenges or risks - include shape incompatibility if relevant"],
+  "actionItems": ["Specific steps to improve bid chances - include sourcing products with correct shape if needed"],
   "budgetAssessment": "Analysis of budget vs user's capacity",
   "timeline": "Assessment of deadlines and feasibility",
-  "strategicAdvice": "High-level strategic recommendations"
+  "strategicAdvice": "High-level strategic recommendations - address shape compatibility"
 }
+
+CRITICAL: Always assess shape compatibility first. If tender requires "Kofferarmaturen" (box-shaped), only products with box-shaped/rectangular housing are compatible. Shape mismatch = major gap that should reduce overall match score significantly (by 20-40%).
 
 Focus on practical, actionable advice that helps the user make an informed decision about bidding.
 `;
+
+    // Helper function to clean and parse JSON from AI responses
+    const cleanAndParseJSON = (content: string): unknown => {
+      let cleanContent = content.trim();
+
+      // Remove markdown code blocks if present
+      if (cleanContent.startsWith('```json')) {
+        cleanContent = cleanContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (cleanContent.startsWith('```')) {
+        cleanContent = cleanContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+
+      // Try to extract just the JSON object if there's extra content
+      const firstBrace = cleanContent.indexOf('{');
+      if (firstBrace !== -1) {
+        let braceCount = 0;
+        let lastBrace = -1;
+
+        for (let i = firstBrace; i < cleanContent.length; i++) {
+          if (cleanContent[i] === '{') {
+            braceCount++;
+          } else if (cleanContent[i] === '}') {
+            braceCount--;
+            if (braceCount === 0) {
+              lastBrace = i;
+              break;
+            }
+          }
+        }
+
+        if (lastBrace !== -1) {
+          cleanContent = cleanContent.substring(firstBrace, lastBrace + 1);
+        }
+      }
+
+      return JSON.parse(cleanContent);
+    };
 
     // Run both AI analyses in parallel
     const [aiResponse, productMatchResponse] = await Promise.all([
@@ -227,7 +309,7 @@ Focus on practical, actionable advice that helps the user make an informed decis
         messages: [
           {
             role: 'system',
-            content: 'You are an expert procurement analyst. Provide detailed, practical analysis comparing tender requirements with company capabilities. Always return valid JSON.'
+            content: 'You are an expert procurement analyst. Provide detailed, practical analysis comparing tender requirements with company capabilities. CRITICAL: Return ONLY valid JSON with no additional commentary, explanations, or text before or after the JSON object. Your entire response must be parseable as JSON.'
           },
           {
             role: 'user',
@@ -236,6 +318,7 @@ Focus on practical, actionable advice that helps the user make an informed decis
         ],
         temperature: 0.1,
         max_tokens: 2000,
+        response_format: { type: 'json_object' },
       }),
 
       // Only run product matching if products exist
@@ -244,7 +327,7 @@ Focus on practical, actionable advice that helps the user make an informed decis
         messages: [
           {
             role: 'system',
-            content: 'You are a technical product matching expert. Analyze product specifications against tender requirements and return matching products with precise technical justifications. Always return valid JSON.'
+            content: 'You are a technical product matching expert. Analyze product specifications against tender requirements and return matching products with precise technical justifications. CRITICAL: Return ONLY valid JSON with no additional commentary. Your entire response must be parseable as JSON.'
           },
           {
             role: 'user',
@@ -253,39 +336,23 @@ Focus on practical, actionable advice that helps the user make an informed decis
         ],
         temperature: 0.1,
         max_tokens: 1500,
+        response_format: { type: 'json_object' },
       }) : Promise.resolve(null)
     ]);
 
     // Clean and parse the main analysis JSON response
-    let content = aiResponse.choices[0]?.message?.content || '{}';
-    content = content.trim();
-
-    // Remove markdown code blocks if present
-    if (content.startsWith('```json')) {
-      content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-    } else if (content.startsWith('```')) {
-      content = content.replace(/^```\s*/, '').replace(/\s*```$/, '');
-    }
-
-    const aiAnalysis = JSON.parse(content);
+    const content = aiResponse.choices[0]?.message?.content || '{}';
+    const aiAnalysis = cleanAndParseJSON(content);
 
     // Parse product matching response if available
     let productMatching = { matchingProducts: [] };
     if (productMatchResponse) {
       try {
-        let productContent = productMatchResponse.choices[0]?.message?.content || '{}';
-        productContent = productContent.trim();
-
-        // Remove markdown code blocks if present
-        if (productContent.startsWith('```json')) {
-          productContent = productContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-        } else if (productContent.startsWith('```')) {
-          productContent = productContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
-        }
-
-        productMatching = JSON.parse(productContent);
+        const productContent = productMatchResponse.choices[0]?.message?.content || '{}';
+        productMatching = cleanAndParseJSON(productContent) as { matchingProducts: unknown[] };
       } catch (error) {
         console.error('Error parsing product matching response:', error);
+        console.error('Product content:', productMatchResponse.choices[0]?.message?.content?.substring(0, 500));
         productMatching = { matchingProducts: [] };
       }
     }

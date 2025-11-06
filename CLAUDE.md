@@ -180,7 +180,13 @@ The proposal generation uses 7 specialized AI agents running in parallel:
 
 **PDF Processing** (`src/lib/pdf-processor.ts`):
 - Uses `pdf-parse-fork` for text extraction
-- Extracts structured data from tender PDFs
+- Extracts structured data from tender PDFs using GPT-4
+- **Shape Extraction**: Automatically detects product shapes from Dutch names:
+  - "Kofferarmaturen" → Box-shaped/Rectangular
+  - "Paaltoparmaturen" → Cylindrical/Pole-top
+  - "Bolderarmaturen" → Spherical/Round
+- Extracts physical specifications: shape, dimensions, housing, mounting, optics, weight
+- 12-lens tender analysis framework for risk identification
 
 **CSV Processing** (`src/lib/csv-parser.ts`):
 - Uses `papaparse` for CSV parsing

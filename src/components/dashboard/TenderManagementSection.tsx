@@ -517,16 +517,22 @@ export default function TenderManagementSection() {
                         <h5 className="font-medium text-gray-900 mb-2">Physical Specifications & Shape Requirements</h5>
                         <div className="bg-indigo-50 p-3 rounded text-sm space-y-2">
                           {/* Shape-specific fields */}
-                          {(tender.specifications as Record<string, unknown>).dimensions && (
+                          {(tender.specifications as Record<string, unknown>).shape && (
                             <div className="border-l-2 border-indigo-300 pl-2">
-                              <span className="font-medium text-indigo-700">Dimensions:</span>{' '}
-                              <span className="text-gray-700">{String((tender.specifications as Record<string, unknown>).dimensions)}</span>
+                              <span className="font-medium text-indigo-700">Shape:</span>{' '}
+                              <span className="text-gray-700">{String((tender.specifications as Record<string, unknown>).shape)}</span>
                             </div>
                           )}
                           {(tender.specifications as Record<string, unknown>).housing && (
                             <div className="border-l-2 border-indigo-300 pl-2">
-                              <span className="font-medium text-indigo-700">Housing/Shape:</span>{' '}
+                              <span className="font-medium text-indigo-700">Shape (Housing):</span>{' '}
                               <span className="text-gray-700">{String((tender.specifications as Record<string, unknown>).housing)}</span>
+                            </div>
+                          )}
+                          {(tender.specifications as Record<string, unknown>).dimensions && (
+                            <div className="border-l-2 border-indigo-300 pl-2">
+                              <span className="font-medium text-indigo-700">Dimensions:</span>{' '}
+                              <span className="text-gray-700">{String((tender.specifications as Record<string, unknown>).dimensions)}</span>
                             </div>
                           )}
                           {(tender.specifications as Record<string, unknown>).mounting && (
@@ -550,7 +556,7 @@ export default function TenderManagementSection() {
                           {/* Other specifications */}
                           {Object.entries(tender.specifications as Record<string, unknown>).map(([key, value]) => {
                             // Skip the ones we've already displayed above
-                            if (['dimensions', 'housing', 'mounting', 'optics', 'weight'].includes(key)) {
+                            if (['shape', 'dimensions', 'housing', 'mounting', 'optics', 'weight'].includes(key)) {
                               return null;
                             }
                             return (
@@ -559,7 +565,7 @@ export default function TenderManagementSection() {
                                   {key.replace(/([A-Z])/g, ' $1')}:
                                 </span>{' '}
                                 <span className="text-gray-700">
-                                  {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                                  {typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value)}
                                 </span>
                               </div>
                             );
@@ -569,8 +575,7 @@ export default function TenderManagementSection() {
                     )}
 
                     {/* Evaluation Criteria */}
-                    {/* @ts-expect-error - TypeScript incorrectly flags Record<string, unknown> as potentially renderable */}
-                    {tender.evaluationCriteria && Object.keys(tender.evaluationCriteria).length > 0 ? (
+                    {tender.evaluationCriteria && Object.keys(tender.evaluationCriteria).length > 0 && (
                       <div>
                         <h5 className="font-medium text-gray-900 mb-2">Evaluation Criteria</h5>
                         <div className="bg-blue-50 p-3 rounded text-sm space-y-1">
@@ -582,7 +587,7 @@ export default function TenderManagementSection() {
                           ))}
                         </div>
                       </div>
-                    ) : null}
+                    )}
 
                     {/* Deadlines */}
                     {tender.deadlines && Object.keys(tender.deadlines).length > 0 && (
@@ -701,7 +706,7 @@ export default function TenderManagementSection() {
               <h4 className="font-medium text-indigo-700 mb-2">🔗 Matching Products</h4>
               {analysis.matchingProducts && analysis.matchingProducts.length > 0 ? (
                 <div className="space-y-2">
-                  {(analysis.matchingProducts as Array<{name: string; category: string; features: string[]; description: string}>).map((product, index: number) => (
+                  {analysis.matchingProducts.map((product, index: number) => (
                     <div key={index} className="bg-indigo-50 p-3 rounded-lg border border-indigo-200">
                       <div className="flex justify-between items-start mb-2">
                         <h5 className="font-medium text-indigo-800">{product.name}</h5>
@@ -720,7 +725,7 @@ export default function TenderManagementSection() {
                           <div><span className="font-medium">Dimensions:</span> {product.dimensions}</div>
                         )}
                         {product.housing && (
-                          <div><span className="font-medium">Housing/Shape:</span> {product.housing}</div>
+                          <div><span className="font-medium">Shape:</span> {product.housing}</div>
                         )}
                         {product.mounting && (
                           <div><span className="font-medium">Mounting:</span> {product.mounting}</div>
