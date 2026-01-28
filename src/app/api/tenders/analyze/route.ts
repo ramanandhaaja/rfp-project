@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
             timeline: existingAnalysis.timeline_assessment,
             strategicAdvice: existingAnalysis.strategic_advice,
             matchingProducts: existingAnalysis.matching_products || [],
+            frequentlyUsedMatching: existingAnalysis.frequently_used_matching || [],
           },
           relevantCapabilities: {
             companies: existingAnalysis.relevant_companies || [],
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
     const companyIds = relevantCapabilities.companies.map(c => c.metadata?.id).filter(Boolean);
     const productIds = relevantCapabilities.products.map(p => p.metadata?.id).filter(Boolean);
 
-    const [companies, products] = await Promise.all([
+    const [companies, products, frequentlyUsedProducts] = await Promise.all([
       companyIds.length > 0 ? supabase
         .from('companies')
         .select('*')
@@ -118,7 +119,12 @@ export async function POST(request: NextRequest) {
         .from('products')
         .select('*')
         .in('id', productIds)
-        .eq('company_id', companyIds[0] || '') : Promise.resolve({ data: [] })
+        .eq('company_id', companyIds[0] || '') : Promise.resolve({ data: [] }),
+      // Fetch frequently used products separately
+      supabase
+        .from('products')
+        .select('*')
+        .eq('frequently_used', true)
     ]);
 
     // Generate product matching analysis
@@ -265,6 +271,84 @@ CRITICAL: Always assess shape compatibility first. If tender requires "Kofferarm
 Focus on practical, actionable advice that helps the user make an informed decision about bidding.
 `;
 
+    // Generate frequently used products matching prompt
+    const frequentlyUsedMatchingPrompt = `
+Analyze the tender requirements and match them with the FREQUENTLY USED products from the user's standard catalog.
+These are the user's most commonly proposed products for tenders.
+
+CRITICAL MATCHING CRITERIA:
+1. Shape compatibility (MUST match - e.g., if tender requires "kofferarmaturen" (box-shaped), products must be box-shaped/rectangular)
+2. Physical dimensions (must fit requirements)
+3. Mounting compatibility (wall/ceiling/pole must match)
+4. Technical specifications (power, light output, efficiency, IP rating)
+5. Certifications and standards compliance
+
+TENDER REQUIREMENTS:
+${JSON.stringify(tender.requirements, null, 2)}
+
+TENDER PHYSICAL SPECIFICATIONS (CRITICAL FOR MATCHING):
+Shape Required: ${tender.specifications?.shape || 'Not specified'}
+Housing Type: ${tender.specifications?.housing || 'Not specified'}
+Dimensions: ${tender.specifications?.dimensions || 'Not specified'}
+Mounting: ${tender.specifications?.mounting || 'Not specified'}
+Products Specified: ${tender.specifications?.products || 'Not specified'}
+
+FULL TENDER SPECIFICATIONS:
+${JSON.stringify(tender.specifications, null, 2)}
+
+FREQUENTLY USED PRODUCTS (Priority Catalog):
+${frequentlyUsedProducts.data?.map(p => `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Product: ${p.name}
+SHAPE/PHYSICAL:
+  - Type: ${p.specifications?.type || 'Not specified'}
+  - Housing/Shape: ${p.specifications?.housing || 'Not specified'}
+  - Dimensions: ${p.specifications?.dimensions || 'Not specified'}
+  - Mounting: ${p.specifications?.mounting || 'Not specified'}
+  - Weight: ${p.specifications?.weight || 'Not specified'}
+TECHNICAL:
+  - Lumen Range: ${p.specifications?.lumen_range || 'Not specified'}
+  - Efficiency: ${p.specifications?.efficiency || 'Not specified'}
+  - CRI: ${p.specifications?.cri || 'Not specified'}
+  - CCT Options: ${p.specifications?.cct || 'Not specified'}
+  - Tilt: ${p.specifications?.tilt || 'Not specified'}
+  - IP Rating: ${p.specifications?.ip_rating || 'Not specified'}
+  - IK Rating: ${p.specifications?.ik_rating || 'Not specified'}
+COMPLIANCE:
+  - Certifications: ${p.features?.join(', ') || 'Not specified'}
+Description: ${p.description}
+`).join('\n') || 'No frequently used products found'}
+
+MATCHING INSTRUCTIONS:
+- FIRST check shape/physical compatibility (if tender specifies "kofferarmaturen", only match box-shaped products; if "paaltoparmaturen", only match cylindrical/pole-top products)
+- If shape is incompatible, assign low match score (<50%) and explain shape mismatch
+- If shape matches, then evaluate technical specs, dimensions, mounting, and certifications
+- Include shape compatibility explicitly in "whyMatch" explanation
+- These are PRIORITY products - if they match, they should be recommended first
+
+Return JSON with ALL frequently used products with their match assessment:
+{
+  "frequentlyUsedMatching": [
+    {
+      "name": "Product name",
+      "type": "Kofferarmatuur/Paaltoparmatuur/etc",
+      "lumenRange": "X - Y lm",
+      "efficiency": "Tot X lm/W",
+      "ipRating": "IPXX",
+      "ikRating": "IKXX",
+      "dimensions": "dimensions in mm",
+      "weight": "X kg",
+      "cctOptions": "2700K, 3000K, 4000K, 5700K",
+      "mounting": "mounting options",
+      "certifications": "ENEC, CE, RoHS, etc",
+      "matchScore": 85,
+      "isRecommended": true,
+      "whyMatch": "Shape: [assessment]. Technical: [assessment]. Recommended because: [reason]"
+    }
+  ]
+}
+`;
+
     // Helper function to clean and parse JSON from AI responses
     const cleanAndParseJSON = (content: string): unknown => {
       let cleanContent = content.trim();
@@ -302,8 +386,8 @@ Focus on practical, actionable advice that helps the user make an informed decis
       return JSON.parse(cleanContent);
     };
 
-    // Run both AI analyses in parallel
-    const [aiResponse, productMatchResponse] = await Promise.all([
+    // Run all AI analyses in parallel
+    const [aiResponse, productMatchResponse, frequentlyUsedMatchResponse] = await Promise.all([
       openai.chat.completions.create({
         model: 'gpt-4-1106-preview',
         messages: [
@@ -337,6 +421,24 @@ Focus on practical, actionable advice that helps the user make an informed decis
         temperature: 0.1,
         max_tokens: 1500,
         response_format: { type: 'json_object' },
+      }) : Promise.resolve(null),
+
+      // Run frequently used products matching
+      frequentlyUsedProducts.data && frequentlyUsedProducts.data.length > 0 ? openai.chat.completions.create({
+        model: 'gpt-4-1106-preview',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a technical product matching expert specializing in LED lighting fixtures. Analyze frequently used products against tender requirements. These are priority products that should be recommended first if they match. CRITICAL: Return ONLY valid JSON with no additional commentary. Your entire response must be parseable as JSON.'
+          },
+          {
+            role: 'user',
+            content: frequentlyUsedMatchingPrompt
+          }
+        ],
+        temperature: 0.1,
+        max_tokens: 2000,
+        response_format: { type: 'json_object' },
       }) : Promise.resolve(null)
     ]);
 
@@ -357,10 +459,24 @@ Focus on practical, actionable advice that helps the user make an informed decis
       }
     }
 
+    // Parse frequently used products matching response if available
+    let frequentlyUsedMatching = { frequentlyUsedMatching: [] };
+    if (frequentlyUsedMatchResponse) {
+      try {
+        const freqContent = frequentlyUsedMatchResponse.choices[0]?.message?.content || '{}';
+        frequentlyUsedMatching = cleanAndParseJSON(freqContent) as { frequentlyUsedMatching: unknown[] };
+      } catch (error) {
+        console.error('Error parsing frequently used matching response:', error);
+        console.error('Frequently used content:', frequentlyUsedMatchResponse.choices[0]?.message?.content?.substring(0, 500));
+        frequentlyUsedMatching = { frequentlyUsedMatching: [] };
+      }
+    }
+
     // Merge the analyses
     const combinedAnalysis = {
       ...aiAnalysis,
-      matchingProducts: productMatching.matchingProducts || []
+      matchingProducts: productMatching.matchingProducts || [],
+      frequentlyUsedMatching: frequentlyUsedMatching.frequentlyUsedMatching || []
     };
 
     // Save the analysis results to database
@@ -396,6 +512,7 @@ Focus on practical, actionable advice that helps the user make an informed decis
         timeline_assessment: combinedAnalysis.timeline,
         strategic_advice: combinedAnalysis.strategicAdvice,
         matching_products: combinedAnalysis.matchingProducts || [],
+        frequently_used_matching: combinedAnalysis.frequentlyUsedMatching || [],
         relevant_companies: relevantCompaniesData,
         relevant_products: relevantProductsData,
         updated_at: new Date().toISOString(),

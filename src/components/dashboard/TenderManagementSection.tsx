@@ -49,19 +49,61 @@ interface ContractConditions {
 }
 
 interface LegalAnalysis {
-  compliance_status: 'Compliant' | 'Partially Compliant' | 'Non-Compliant' | 'Requires Review';
-  applicable_articles: Array<{
-    article: string;
-    title: string;
-    status: 'Met' | 'Partially Met' | 'Not Met' | 'Not Applicable';
-    requirements: string[];
-    recommendations: string[];
-    risk_level: string;
+  // Risk Summary
+  risk_matrix: Array<{
+    category: string;
+    risk: string;
+    price_impact: string;
+    priority: number; // 1-5
   }>;
+  total_risk_premium: string;
+
+  // Detailed Findings (10 categories)
+  detailed_findings: Array<{
+    category: string;
+    provisions_found: string[];
+    market_standard: string;
+    deviation: string;
+    financial_impact: string;
+    recommendation: 'Accept' | 'Negotiate' | 'Dealbreaker';
+  }>;
+
+  // Recommendations
+  nvi_questions: string[];
+  negotiation_points: string[];
+  pricing_structure: {
+    base_price_note: string;
+    risk_premium_warranties: string;
+    risk_premium_penalties: string;
+    risk_premium_other: string;
+    total_recommended_margin: string;
+  };
+
+  // Dealbreakers
+  dealbreakers: string[];
+
+  // Backwards compatibility
+  compliance_status: 'Compliant' | 'Partially Compliant' | 'Non-Compliant' | 'Requires Review';
   compliance_score: number;
   key_risks: string[];
   action_items: string[];
-  legal_recommendations: string[];
+}
+
+interface FrequentlyUsedProduct {
+  name: string;
+  type?: string;
+  lumenRange?: string;
+  efficiency?: string;
+  ipRating?: string;
+  ikRating?: string;
+  dimensions?: string;
+  weight?: string;
+  cctOptions?: string;
+  mounting?: string;
+  certifications?: string;
+  matchScore: number;
+  isRecommended?: boolean;
+  whyMatch?: string;
 }
 
 interface TenderAnalysis {
@@ -90,6 +132,7 @@ interface TenderAnalysis {
     matchScore: number;
     whyMatch?: string;
   }>;
+  frequentlyUsedMatching?: FrequentlyUsedProduct[];
   legalAnalysis?: LegalAnalysis;
   riskAnalysis?: RiskAnalysis;
   questionPriorities?: QuestionPriority[];
@@ -118,6 +161,8 @@ export default function TenderManagementSection() {
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [analyzedTenders, setAnalyzedTenders] = useState<Set<string>>(new Set());
+  const [isSyncingProducts, setIsSyncingProducts] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
     if (session) {
@@ -239,6 +284,42 @@ export default function TenderManagementSection() {
     }
   };
 
+  const handleSyncProducts = async () => {
+    setIsSyncingProducts(true);
+    setSyncResult(null);
+
+    try {
+      const response = await fetch('/api/products/sync-embeddings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setSyncResult({
+          success: true,
+          message: `Synced ${result.synced} products to search index. You can now use Standard Matching.`
+        });
+      } else {
+        setSyncResult({
+          success: false,
+          message: result.error || 'Failed to sync products'
+        });
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+      setSyncResult({
+        success: false,
+        message: 'Failed to sync products'
+      });
+    } finally {
+      setIsSyncingProducts(false);
+    }
+  };
+
   const handleLegalAnalysis = async (tender: TenderDocument) => {
     setIsLegalAnalyzing(true);
     setSelectedTender(tender);
@@ -302,14 +383,39 @@ export default function TenderManagementSection() {
     }
   };
 
-  const getArticleStatusColor = (status: string) => {
-    switch (status) {
-      case 'Met': return 'bg-green-100 text-green-800';
-      case 'Partially Met': return 'bg-yellow-100 text-yellow-800';
-      case 'Not Met': return 'bg-red-100 text-red-800';
-      case 'Not Applicable': return 'bg-gray-100 text-gray-800';
+  const getPriorityColor = (priority: number) => {
+    switch (priority) {
+      case 5: return 'bg-red-100 text-red-800 border-red-300';
+      case 4: return 'bg-orange-100 text-orange-800 border-orange-300';
+      case 3: return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      case 2: return 'bg-blue-100 text-blue-800 border-blue-300';
+      case 1: return 'bg-green-100 text-green-800 border-green-300';
+      default: return 'bg-gray-100 text-gray-800 border-gray-300';
+    }
+  };
+
+  const getLegalRecommendationColor = (rec: string) => {
+    switch (rec) {
+      case 'Accept': return 'bg-green-100 text-green-800';
+      case 'Negotiate': return 'bg-yellow-100 text-yellow-800';
+      case 'Dealbreaker': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const [expandedFindings, setExpandedFindings] = useState<Set<number>>(new Set());
+  const [productMatchTab, setProductMatchTab] = useState<'frequently-used' | 'standard'>('frequently-used');
+
+  const toggleFinding = (index: number) => {
+    setExpandedFindings(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
   };
 
   return (
@@ -703,50 +809,200 @@ export default function TenderManagementSection() {
           </div>
 
           <div className='mb-8'>
-              <h4 className="font-medium text-indigo-700 mb-2">🔗 Matching Products</h4>
-              {analysis.matchingProducts && analysis.matchingProducts.length > 0 ? (
-                <div className="space-y-2">
-                  {analysis.matchingProducts.map((product, index: number) => (
-                    <div key={index} className="bg-indigo-50 p-3 rounded-lg border border-indigo-200">
-                      <div className="flex justify-between items-start mb-2">
-                        <h5 className="font-medium text-indigo-800">{product.name}</h5>
-                        <span className="text-xs bg-indigo-200 text-indigo-800 px-2 py-1 rounded">
-                          {product.matchScore}% match
-                        </span>
-                      </div>
-                      <div className="space-y-1 text-sm text-indigo-700">
-                        <div><span className="font-medium">Power:</span> {product.powerRange}W</div>
-                        <div><span className="font-medium">Output:</span> {product.lightOutput} lumens</div>
-                        <div><span className="font-medium">Efficiency:</span> {product.efficiency} lm/W</div>
-                        {product.ipRating && (
-                          <div><span className="font-medium">Protection:</span> {product.ipRating}</div>
-                        )}
-                        {product.dimensions && (
-                          <div><span className="font-medium">Dimensions:</span> {product.dimensions}</div>
-                        )}
-                        {product.housing && (
-                          <div><span className="font-medium">Shape:</span> {product.housing}</div>
-                        )}
-                        {product.mounting && (
-                          <div><span className="font-medium">Mounting:</span> {product.mounting}</div>
-                        )}
-                        {product.optics && (
-                          <div><span className="font-medium">Optics:</span> {product.optics}</div>
-                        )}
-                        {product.certifications && (
-                          <div><span className="font-medium">Certified:</span> {product.certifications}</div>
-                        )}
-                      </div>
-                      {product.whyMatch && (
-                        <div className="mt-2 text-xs text-indigo-600 bg-indigo-100 p-2 rounded">
-                          <span className="font-medium">Why it matches:</span> {product.whyMatch}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+              <div className="flex justify-between items-center mb-3">
+                <h4 className="font-medium text-indigo-700">Matching Products</h4>
+                <button
+                  onClick={handleSyncProducts}
+                  disabled={isSyncingProducts}
+                  className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50"
+                  title="Sync products to enable Standard Matching"
+                >
+                  {isSyncingProducts ? 'Syncing...' : 'Sync Products to Search Index'}
+                </button>
+              </div>
+
+              {/* Sync Result Message */}
+              {syncResult && (
+                <div className={`mb-3 p-2 rounded text-sm ${
+                  syncResult.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                }`}>
+                  {syncResult.message}
                 </div>
-              ) : (
-                <p className="text-sm text-gray-500 italic">No specific product matches available. Run analysis to get product recommendations.</p>
+              )}
+
+              {/* Tabs */}
+              <div className="flex border-b border-gray-200 mb-4">
+                <button
+                  onClick={() => setProductMatchTab('frequently-used')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    productMatchTab === 'frequently-used'
+                      ? 'border-indigo-600 text-indigo-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  Frequently Used
+                  {analysis.frequentlyUsedMatching && analysis.frequentlyUsedMatching.length > 0 && (
+                    <span className="ml-2 px-2 py-0.5 text-xs bg-indigo-100 text-indigo-700 rounded-full">
+                      {analysis.frequentlyUsedMatching.filter(p => p.isRecommended).length}/{analysis.frequentlyUsedMatching.length}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => setProductMatchTab('standard')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    productMatchTab === 'standard'
+                      ? 'border-indigo-600 text-indigo-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  Standard Matching
+                  {analysis.matchingProducts && analysis.matchingProducts.length > 0 && (
+                    <span className="ml-2 px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded-full">
+                      {analysis.matchingProducts.length}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {/* Frequently Used Products Tab */}
+              {productMatchTab === 'frequently-used' && (
+                <div>
+                  {analysis.frequentlyUsedMatching && analysis.frequentlyUsedMatching.length > 0 ? (
+                    <div className="space-y-2">
+                      {analysis.frequentlyUsedMatching
+                        .sort((a, b) => b.matchScore - a.matchScore)
+                        .map((product, index: number) => (
+                        <div
+                          key={index}
+                          className={`p-3 rounded-lg border ${
+                            product.isRecommended
+                              ? 'bg-green-50 border-green-300'
+                              : 'bg-gray-50 border-gray-200'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex items-center gap-2">
+                              <h5 className={`font-medium ${product.isRecommended ? 'text-green-800' : 'text-gray-800'}`}>
+                                {product.name}
+                              </h5>
+                              {product.isRecommended && (
+                                <span className="px-2 py-0.5 text-xs bg-green-200 text-green-800 rounded-full font-medium">
+                                  Recommended
+                                </span>
+                              )}
+                            </div>
+                            <span className={`text-xs px-2 py-1 rounded font-medium ${
+                              product.matchScore >= 80 ? 'bg-green-200 text-green-800' :
+                              product.matchScore >= 60 ? 'bg-yellow-200 text-yellow-800' :
+                              'bg-red-200 text-red-800'
+                            }`}>
+                              {product.matchScore}% match
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm text-gray-700">
+                            {product.type && (
+                              <div><span className="font-medium">Type:</span> {product.type}</div>
+                            )}
+                            {product.lumenRange && (
+                              <div><span className="font-medium">Lumen:</span> {product.lumenRange}</div>
+                            )}
+                            {product.efficiency && (
+                              <div><span className="font-medium">Efficiency:</span> {product.efficiency}</div>
+                            )}
+                            {product.ipRating && (
+                              <div><span className="font-medium">IP:</span> {product.ipRating}</div>
+                            )}
+                            {product.ikRating && (
+                              <div><span className="font-medium">IK:</span> {product.ikRating}</div>
+                            )}
+                            {product.dimensions && (
+                              <div><span className="font-medium">Dimensions:</span> {product.dimensions}</div>
+                            )}
+                            {product.weight && (
+                              <div><span className="font-medium">Weight:</span> {product.weight}</div>
+                            )}
+                            {product.cctOptions && (
+                              <div><span className="font-medium">CCT:</span> {product.cctOptions}</div>
+                            )}
+                            {product.mounting && (
+                              <div><span className="font-medium">Mounting:</span> {product.mounting}</div>
+                            )}
+                            {product.certifications && (
+                              <div className="col-span-2"><span className="font-medium">Certifications:</span> {product.certifications}</div>
+                            )}
+                          </div>
+                          {product.whyMatch && (
+                            <div className={`mt-2 text-xs p-2 rounded ${
+                              product.isRecommended ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              <span className="font-medium">Analysis:</span> {product.whyMatch}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic py-4 text-center">
+                      No frequently used products analyzed. Run analysis to compare against your priority products.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Standard Matching Products Tab */}
+              {productMatchTab === 'standard' && (
+                <div>
+                  {analysis.matchingProducts && analysis.matchingProducts.length > 0 ? (
+                    <div className="space-y-2">
+                      {analysis.matchingProducts.map((product, index: number) => (
+                        <div key={index} className="bg-indigo-50 p-3 rounded-lg border border-indigo-200">
+                          <div className="flex justify-between items-start mb-2">
+                            <h5 className="font-medium text-indigo-800">{product.name}</h5>
+                            <span className={`text-xs px-2 py-1 rounded font-medium ${
+                              product.matchScore >= 80 ? 'bg-green-200 text-green-800' :
+                              product.matchScore >= 60 ? 'bg-yellow-200 text-yellow-800' :
+                              'bg-red-200 text-red-800'
+                            }`}>
+                              {product.matchScore}% match
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm text-indigo-700">
+                            <div><span className="font-medium">Power:</span> {product.powerRange}</div>
+                            <div><span className="font-medium">Output:</span> {product.lightOutput}</div>
+                            <div><span className="font-medium">Efficiency:</span> {product.efficiency}</div>
+                            {product.ipRating && (
+                              <div><span className="font-medium">IP:</span> {product.ipRating}</div>
+                            )}
+                            {product.dimensions && (
+                              <div><span className="font-medium">Dimensions:</span> {product.dimensions}</div>
+                            )}
+                            {product.housing && (
+                              <div><span className="font-medium">Shape:</span> {product.housing}</div>
+                            )}
+                            {product.mounting && (
+                              <div><span className="font-medium">Mounting:</span> {product.mounting}</div>
+                            )}
+                            {product.optics && (
+                              <div><span className="font-medium">Optics:</span> {product.optics}</div>
+                            )}
+                            {product.certifications && (
+                              <div className="col-span-2"><span className="font-medium">Certifications:</span> {product.certifications}</div>
+                            )}
+                          </div>
+                          {product.whyMatch && (
+                            <div className="mt-2 text-xs text-indigo-600 bg-indigo-100 p-2 rounded">
+                              <span className="font-medium">Why it matches:</span> {product.whyMatch}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic py-4 text-center">
+                      No standard product matches available. Run analysis to get product recommendations.
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 
@@ -1007,17 +1263,35 @@ export default function TenderManagementSection() {
 
       {/* Legal Analysis Results */}
       {legalAnalysis && selectedTender && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex justify-between items-start mb-4">
+        <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
+          <div className="flex justify-between items-start">
             <h3 className="text-lg font-semibold">
-              🏛️ Legal Compliance Analysis: {selectedTender.title}
+              Legal & Commercial Risk Analysis: {selectedTender.title}
             </h3>
             <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
-              ⚖️ Dutch Procurement Law
+              Lighting Fixtures Framework
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {/* Dealbreakers Alert */}
+          {legalAnalysis.dealbreakers && legalAnalysis.dealbreakers.length > 0 && (
+            <div className="p-4 bg-red-50 border-2 border-red-300 rounded-lg">
+              <h4 className="font-bold text-red-800 mb-2 flex items-center gap-2">
+                <span className="text-lg">CRITICAL: Dealbreakers Identified</span>
+              </h4>
+              <ul className="space-y-1 text-sm">
+                {legalAnalysis.dealbreakers.map((item, index) => (
+                  <li key={index} className="text-red-700 font-medium">• {item}</li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs text-red-600 italic">
+                These provisions make participation inadvisable without significant negotiation or clarification.
+              </p>
+            </div>
+          )}
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center p-4 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-600">Compliance Status</p>
               <p className={`text-xl font-bold ${getComplianceStatusColor(legalAnalysis.compliance_status)}`}>
@@ -1030,61 +1304,167 @@ export default function TenderManagementSection() {
                 {legalAnalysis.compliance_score}%
               </p>
             </div>
+            <div className="text-center p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+              <p className="text-sm text-blue-600">Total Risk Premium</p>
+              <p className="text-2xl font-bold text-blue-800">
+                {legalAnalysis.total_risk_premium || 'TBD'}
+              </p>
+            </div>
           </div>
 
-          {/* Applicable Articles */}
-          {legalAnalysis.applicable_articles && legalAnalysis.applicable_articles.length > 0 && (
-            <div className="mb-6">
-              <h4 className="font-medium text-gray-900 mb-4">📋 Applicable Legal Articles</h4>
-              <div className="space-y-3">
-                {legalAnalysis.applicable_articles.map((article, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h5 className="font-medium text-gray-900">{article.article}</h5>
-                        <p className="text-sm text-gray-600">{article.title}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <span className={`px-2 py-1 text-xs rounded ${getArticleStatusColor(article.status)}`}>
-                          {article.status}
-                        </span>
-                        <span className={`px-2 py-1 text-xs rounded ${
-                          article.risk_level === 'High' ? 'bg-red-100 text-red-800' :
-                          article.risk_level === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-green-100 text-green-800'
-                        }`}>
-                          {article.risk_level} Risk
-                        </span>
-                      </div>
-                    </div>
+          {/* Risk Matrix Table */}
+          {legalAnalysis.risk_matrix && legalAnalysis.risk_matrix.length > 0 && (
+            <div>
+              <h4 className="font-medium text-gray-900 mb-3">Risk Matrix</h4>
+              <div className="overflow-x-auto">
+                <table className="min-w-full border border-gray-200 rounded-lg">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Risk</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Price Impact</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Priority</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {legalAnalysis.risk_matrix
+                      .sort((a, b) => b.priority - a.priority)
+                      .map((item, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.category}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{item.risk}</td>
+                        <td className="px-4 py-3 text-sm font-medium text-orange-600">{item.price_impact}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`px-2 py-1 text-xs font-bold rounded border ${getPriorityColor(item.priority)}`}>
+                            P{item.priority}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                      <div>
-                        <h6 className="text-sm font-medium text-gray-700 mb-1">Requirements:</h6>
-                        <ul className="text-xs text-gray-600 space-y-1">
-                          {article.requirements.map((req, reqIndex) => (
-                            <li key={reqIndex}>• {req}</li>
-                          ))}
-                        </ul>
+          {/* Detailed Findings Accordion */}
+          {legalAnalysis.detailed_findings && legalAnalysis.detailed_findings.length > 0 && (
+            <div>
+              <h4 className="font-medium text-gray-900 mb-3">Detailed Findings by Category</h4>
+              <div className="space-y-2">
+                {legalAnalysis.detailed_findings.map((finding, index) => (
+                  <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => toggleFinding(index)}
+                      className="w-full px-4 py-3 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-gray-900">{finding.category}</span>
+                        <span className={`px-2 py-1 text-xs rounded ${getLegalRecommendationColor(finding.recommendation)}`}>
+                          {finding.recommendation}
+                        </span>
                       </div>
-                      <div>
-                        <h6 className="text-sm font-medium text-gray-700 mb-1">Recommendations:</h6>
-                        <ul className="text-xs text-gray-600 space-y-1">
-                          {article.recommendations.map((rec, recIndex) => (
-                            <li key={recIndex}>• {rec}</li>
-                          ))}
-                        </ul>
+                      <span className="text-gray-400">{expandedFindings.has(index) ? '−' : '+'}</span>
+                    </button>
+
+                    {expandedFindings.has(index) && (
+                      <div className="px-4 py-3 space-y-3 bg-white">
+                        <div>
+                          <h6 className="text-xs font-medium text-gray-500 uppercase mb-1">Provisions Found</h6>
+                          <ul className="text-sm text-gray-700 space-y-1">
+                            {finding.provisions_found.map((provision, pIndex) => (
+                              <li key={pIndex}>• {provision}</li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <h6 className="text-xs font-medium text-gray-500 uppercase mb-1">Market Standard</h6>
+                            <p className="text-sm text-gray-700">{finding.market_standard}</p>
+                          </div>
+                          <div>
+                            <h6 className="text-xs font-medium text-gray-500 uppercase mb-1">Deviation</h6>
+                            <p className="text-sm text-gray-700">{finding.deviation}</p>
+                          </div>
+                        </div>
+
+                        <div className="p-2 bg-orange-50 rounded">
+                          <h6 className="text-xs font-medium text-orange-700 uppercase mb-1">Financial Impact</h6>
+                          <p className="text-sm font-medium text-orange-800">{finding.financial_impact}</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
           )}
 
+          {/* NvI Questions */}
+          {legalAnalysis.nvi_questions && legalAnalysis.nvi_questions.length > 0 && (
+            <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+              <h4 className="font-medium text-purple-800 mb-3">Questions for Nota van Inlichtingen</h4>
+              <ol className="space-y-2 text-sm">
+                {legalAnalysis.nvi_questions.map((question, index) => (
+                  <li key={index} className="text-purple-700">
+                    <span className="font-bold mr-2">{index + 1}.</span>
+                    {question}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          {/* Negotiation Points */}
+          {legalAnalysis.negotiation_points && legalAnalysis.negotiation_points.length > 0 && (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <h4 className="font-medium text-yellow-800 mb-3">Key Negotiation Points</h4>
+              <ul className="space-y-1 text-sm">
+                {legalAnalysis.negotiation_points.map((point, index) => (
+                  <li key={index} className="text-yellow-700">• {point}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Pricing Structure */}
+          {legalAnalysis.pricing_structure && (
+            <div>
+              <h4 className="font-medium text-gray-900 mb-3">Recommended Pricing Structure</h4>
+              <div className="overflow-x-auto">
+                <table className="min-w-full border border-gray-200 rounded-lg">
+                  <tbody className="divide-y divide-gray-200">
+                    <tr className="bg-gray-50">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700">Base Price Note</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{legalAnalysis.pricing_structure.base_price_note}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700">Risk Premium: Warranties</td>
+                      <td className="px-4 py-3 text-sm text-orange-600 font-medium">{legalAnalysis.pricing_structure.risk_premium_warranties}</td>
+                    </tr>
+                    <tr className="bg-gray-50">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700">Risk Premium: Penalties</td>
+                      <td className="px-4 py-3 text-sm text-orange-600 font-medium">{legalAnalysis.pricing_structure.risk_premium_penalties}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700">Risk Premium: Other</td>
+                      <td className="px-4 py-3 text-sm text-orange-600 font-medium">{legalAnalysis.pricing_structure.risk_premium_other}</td>
+                    </tr>
+                    <tr className="bg-blue-50">
+                      <td className="px-4 py-3 text-sm font-bold text-blue-800">Total Recommended Margin</td>
+                      <td className="px-4 py-3 text-sm font-bold text-blue-800">{legalAnalysis.pricing_structure.total_recommended_margin}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Key Risks and Action Items */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h4 className="font-medium text-red-700 mb-2">⚠️ Key Legal Risks</h4>
+              <h4 className="font-medium text-red-700 mb-2">Key Legal Risks</h4>
               <ul className="space-y-1 text-sm">
                 {legalAnalysis.key_risks.map((risk, index) => (
                   <li key={index} className="text-red-600">• {risk}</li>
@@ -1093,22 +1473,13 @@ export default function TenderManagementSection() {
             </div>
 
             <div>
-              <h4 className="font-medium text-blue-700 mb-2">✅ Legal Action Items</h4>
+              <h4 className="font-medium text-blue-700 mb-2">Action Items</h4>
               <ul className="space-y-1 text-sm">
                 {legalAnalysis.action_items.map((item, index) => (
                   <li key={index} className="text-blue-600">• {item}</li>
                 ))}
               </ul>
             </div>
-          </div>
-
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <h4 className="font-medium text-blue-700 mb-2">⚖️ Legal Recommendations</h4>
-            <ul className="space-y-1 text-sm">
-              {legalAnalysis.legal_recommendations.map((rec, index) => (
-                <li key={index} className="text-blue-600">• {rec}</li>
-              ))}
-            </ul>
           </div>
         </div>
       )}
