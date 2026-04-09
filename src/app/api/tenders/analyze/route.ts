@@ -389,7 +389,7 @@ Return JSON with ALL frequently used products with their match assessment:
     // Run all AI analyses in parallel
     const [aiResponse, productMatchResponse, frequentlyUsedMatchResponse] = await Promise.all([
       openai.chat.completions.create({
-        model: 'gpt-4-1106-preview',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
@@ -407,7 +407,7 @@ Return JSON with ALL frequently used products with their match assessment:
 
       // Only run product matching if products exist
       products.data && products.data.length > 0 ? openai.chat.completions.create({
-        model: 'gpt-4-1106-preview',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
@@ -425,7 +425,7 @@ Return JSON with ALL frequently used products with their match assessment:
 
       // Run frequently used products matching
       frequentlyUsedProducts.data && frequentlyUsedProducts.data.length > 0 ? openai.chat.completions.create({
-        model: 'gpt-4-1106-preview',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',

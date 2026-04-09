@@ -1,11 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Session } from "next-auth"
-
-interface OverviewSectionProps {
-  session: Session
-}
+import { useSession } from "next-auth/react"
 
 interface DashboardStats {
   totalCompanies: number;
@@ -14,7 +10,8 @@ interface DashboardStats {
   analysisCount: number;
 }
 
-export default function OverviewSection({ session }: OverviewSectionProps) {
+export default function OverviewSection() {
+  const { data: session } = useSession();
   const [stats, setStats] = useState<DashboardStats>({
     totalCompanies: 0,
     totalProducts: 0,

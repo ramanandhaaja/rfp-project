@@ -210,7 +210,7 @@ Ensure all quotes inside the content are properly escaped with backslashes.
 `;
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4-1106-preview',
+    model: 'gpt-4o',
     messages: [
       { role: 'system', content: 'You are a proposal writing expert specializing in Dutch public procurement. Write compelling, professional content.' },
       { role: 'user', content: prompt }
@@ -247,7 +247,7 @@ Ensure all quotes inside the content are properly escaped with backslashes.
 `;
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4-1106-preview',
+    model: 'gpt-4o',
     messages: [
       { role: 'system', content: 'You are an expert in creating executive summaries for public procurement proposals.' },
       { role: 'user', content: prompt }
@@ -287,7 +287,7 @@ Ensure all quotes inside the content are properly escaped with backslashes.
 `;
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4-1106-preview',
+    model: 'gpt-4o',
     messages: [
       { role: 'system', content: 'You are a project methodology expert for public sector implementations.' },
       { role: 'user', content: prompt }
@@ -327,7 +327,7 @@ Ensure all quotes inside the content are properly escaped with backslashes.
 `;
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4-1106-preview',
+    model: 'gpt-4o',
     messages: [
       { role: 'system', content: 'You are an organizational design expert for public sector projects.' },
       { role: 'user', content: prompt }
@@ -367,7 +367,7 @@ Ensure all quotes inside the content are properly escaped with backslashes.
 `;
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4-1106-preview',
+    model: 'gpt-4o',
     messages: [
       { role: 'system', content: 'You are a risk management expert for public procurement projects.' },
       { role: 'user', content: prompt }
@@ -402,7 +402,7 @@ Ensure all quotes inside the content are properly escaped with backslashes.
 `;
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4-1106-preview',
+    model: 'gpt-4o',
     messages: [
       { role: 'system', content: 'You are a sustainability and innovation expert for Dutch public procurement.' },
       { role: 'user', content: prompt }
@@ -437,7 +437,7 @@ Ensure all quotes inside the content are properly escaped with backslashes.
 `;
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4-1106-preview',
+    model: 'gpt-4o',
     messages: [
       { role: 'system', content: 'You are a competitive positioning expert for public sector proposals.' },
       { role: 'user', content: prompt }

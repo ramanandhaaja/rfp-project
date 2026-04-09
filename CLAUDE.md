@@ -10,7 +10,7 @@ This is an AI-powered RFP (Request for Proposal) management platform built with 
 - **Framework**: Next.js 15 with App Router and Turbopack
 - **Authentication**: NextAuth.js with credentials provider backed by Supabase PostgreSQL
 - **Database**: Supabase PostgreSQL with bcrypt password hashing
-- **AI/ML**: OpenAI GPT-4 for analysis and proposal generation, text-embedding-ada-002 for embeddings
+- **AI/ML**: OpenAI GPT-4 for analysis and proposal generation, text-embedding-ada-002 for embeddings; LangChain (`langchain`) is installed but usage is limited
 - **Vector Database**: Pinecone for semantic search of companies, products, and tenders
 - **UI Framework**: Tailwind CSS v4 with shadcn/ui components (New York style, Neutral base color)
 - **TypeScript**: Full TypeScript support throughout
@@ -20,7 +20,9 @@ This is an AI-powered RFP (Request for Proposal) management platform built with 
 - `npm run dev` - Start development server with Turbopack
 - `npm run build` - Build production version with Turbopack
 - `npm start` - Start production server
-- `npm run lint` - Run ESLint
+- `npm run lint` - Run ESLint (no path configured — runs on the whole project)
+
+**No test framework is configured.** There are no test files or test scripts in this project.
 
 ## Environment Variables Required
 
@@ -205,6 +207,7 @@ The proposal generation uses 7 specialized AI agents running in parallel:
 **Products**:
 - `/api/products` - CRUD for products
 - `/api/products/import-csv` - Bulk CSV import
+- `/api/products/sync-embeddings` - Sync product data into Pinecone embeddings
 
 **Tenders**:
 - `/api/tenders/import` - Upload and parse tender PDFs
