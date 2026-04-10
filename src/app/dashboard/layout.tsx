@@ -9,6 +9,7 @@ interface MenuItem {
   id: string
   name: string
   href: string
+  section: string
   icon: React.ReactNode
 }
 
@@ -17,10 +18,10 @@ const menuItems: MenuItem[] = [
     id: "overview",
     name: "Overview",
     href: "/dashboard",
+    section: "General",
     icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h4a2 2 0 012 2v0" />
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
       </svg>
     )
   },
@@ -28,9 +29,10 @@ const menuItems: MenuItem[] = [
     id: "company-profile",
     name: "Company Profile",
     href: "/dashboard/company-profile",
+    section: "Workspace",
     icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
       </svg>
     )
   },
@@ -38,9 +40,10 @@ const menuItems: MenuItem[] = [
     id: "tender-management",
     name: "Tender Management",
     href: "/dashboard/tender-management",
+    section: "Workspace",
     icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
     )
   },
@@ -48,9 +51,10 @@ const menuItems: MenuItem[] = [
     id: "proposal-generation",
     name: "Proposal & NvI",
     href: "/dashboard/proposals",
+    section: "Workspace",
     icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
       </svg>
     )
   }
@@ -73,8 +77,14 @@ export default function DashboardLayout({
 
   if (status === "loading" || status === "unauthenticated") {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex items-center gap-2">
+          <svg className="animate-spin w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+          <span className="text-sm font-medium text-gray-500">Loading...</span>
+        </div>
       </div>
     )
   }
@@ -86,57 +96,95 @@ export default function DashboardLayout({
     return pathname.startsWith(href)
   }
 
+  const userName = session.user?.name || session.user?.email || "User"
+  const userInitial = userName.charAt(0).toUpperCase()
+
+  // Group menu items by section
+  const sections = Array.from(new Set(menuItems.map(item => item.section)))
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Top Navigation */}
-      <nav className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
-        <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Link href="/" className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                RFPBolt AI
-              </Link>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-700 dark:text-gray-300">
-                {session.user?.name || session.user?.email}
-              </span>
+    <div className="min-h-screen bg-gray-50">
+      <div className="flex">
+        {/* ── Left Sidebar ── */}
+        <aside className="w-60 bg-white border-r border-gray-200 min-h-screen flex flex-col fixed left-0 top-0 bottom-0 z-40">
+          {/* Brand */}
+          <div className="px-5 py-5 border-b border-gray-100">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <span className="text-sm font-bold text-gray-900 tracking-tight">RFPBolt AI</span>
+            </Link>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto">
+            {sections.map((section) => (
+              <div key={section}>
+                <h3 className="px-2 mb-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                  {section}
+                </h3>
+                <div className="space-y-0.5">
+                  {menuItems
+                    .filter((item) => item.section === section)
+                    .map((item) => {
+                      const active = isActive(item.href)
+                      return (
+                        <Link
+                          key={item.id}
+                          href={item.href}
+                          className={`group flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
+                            active
+                              ? "bg-indigo-50 text-indigo-700"
+                              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                          }`}
+                        >
+                          <span className={`transition-colors ${active ? "text-indigo-600" : "text-gray-400 group-hover:text-gray-600"}`}>
+                            {item.icon}
+                          </span>
+                          <span className="flex-1">{item.name}</span>
+                          {active && (
+                            <span className="w-1 h-1 rounded-full bg-indigo-500" />
+                          )}
+                        </Link>
+                      )
+                    })}
+                </div>
+              </div>
+            ))}
+          </nav>
+
+          {/* User Footer */}
+          <div className="px-3 py-3 border-t border-gray-100">
+            <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center flex-shrink-0">
+                <span className="text-[11px] font-bold text-white">{userInitial}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-800 truncate">{session.user?.name || "User"}</p>
+                <p className="text-[10px] text-gray-400 truncate">{session.user?.email}</p>
+              </div>
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                title="Sign out"
               >
-                Sign Out
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
               </button>
             </div>
           </div>
-        </div>
-      </nav>
+        </aside>
 
-      <div className="flex">
-        {/* Left Sidebar */}
-        <div className="w-64 bg-white dark:bg-gray-800 shadow-sm border-r border-gray-200 dark:border-gray-700 min-h-[calc(100vh-4rem)]">
-          <nav className="mt-8">
-            {menuItems.map((item) => (
-              <Link
-                key={item.id}
-                href={item.href}
-                className={`w-full flex items-center px-6 py-3 text-left text-sm font-medium transition-colors ${
-                  isActive(item.href)
-                    ? "bg-indigo-50 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 border-r-2 border-indigo-600"
-                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
-                }`}
-              >
-                <span className="mr-3">{item.icon}</span>
-                {item.name}
-              </Link>
-            ))}
-          </nav>
-        </div>
-
-        {/* Main Content */}
-        <div className="flex-1 p-8">
-          {children}
-        </div>
+        {/* ── Main Content ── */}
+        <main className="flex-1 ml-60 min-h-screen">
+          <div className="max-w-7xl mx-auto px-8 py-8">
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   )

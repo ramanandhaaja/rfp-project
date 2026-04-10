@@ -180,10 +180,10 @@ export default function CompanyProfileSection() {
       const companyData = await companyResponse.json();
       const companyId = companyData.company.id;
 
-      // Save products
-      for (const product of products) {
-        if (product.name.trim()) {
-          const productResponse = await fetch('/api/products', {
+      const productsToSave = products.filter(p => p.name.trim());
+      const saveResults = await Promise.all(
+        productsToSave.map(product =>
+          fetch('/api/products', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -193,25 +193,19 @@ export default function CompanyProfileSection() {
               description: product.description,
               features: product.features || [],
             }),
-          });
+          }).then(res => ({ ok: res.ok, name: product.name }))
+        )
+      );
 
-          if (!productResponse.ok) {
-            console.error('Failed to save product:', product.name);
-          }
-        }
+      const failedProducts = saveResults.filter(r => !r.ok).map(r => r.name);
+      if (failedProducts.length > 0) {
+        alert(`Company saved, but ${failedProducts.length} product(s) failed: ${failedProducts.join(', ')}`);
+      } else {
+        alert('Company profile and products saved successfully!');
       }
-
-      alert('Company profile and products saved successfully!');
-
-      // Refresh the saved products list
-      if (companyId) {
-        await fetchCompanyProducts(companyId);
-      }
-
-      // Reset the manual product form
-      setProducts([{ name: '', description: '', category: '', features: [] }]);
 
       await fetchExistingCompanies();
+      setProducts([{ name: '', description: '', category: '', features: [] }]);
     } catch (error) {
       console.error('Error saving profile:', error);
       alert('Failed to save profile. Please try again.');
@@ -266,131 +260,139 @@ export default function CompanyProfileSection() {
     }
   };
 
-  return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">Company Profile</h1>
+  const inputClass = "w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 transition-colors";
+  const labelClass = "block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5";
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Company Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+  return (
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Company Profile</h2>
+        <p className="text-sm text-gray-500 mt-1">Manage your company information and product catalog</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* ── Company Information ── */}
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Company Information</h3>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Company Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={company.name}
+                  onChange={(e) => handleCompanyChange('name', e.target.value)}
+                  className={inputClass}
+                  placeholder="Enter company name"
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Industry *</label>
+                <select
+                  required
+                  value={company.industry}
+                  onChange={(e) => handleCompanyChange('industry', e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">Select industry</option>
+                  <option value="Technology">Technology</option>
+                  <option value="Healthcare">Healthcare</option>
+                  <option value="Finance">Finance</option>
+                  <option value="Manufacturing">Manufacturing</option>
+                  <option value="Construction">Construction</option>
+                  <option value="Consulting">Consulting</option>
+                  <option value="Education">Education</option>
+                  <option value="Energy">Energy</option>
+                  <option value="Telecommunications">Telecommunications</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Website</label>
+                <input
+                  type="url"
+                  value={company.website || ''}
+                  onChange={(e) => handleCompanyChange('website', e.target.value)}
+                  className={inputClass}
+                  placeholder="https://company.com"
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Contact Email</label>
+                <input
+                  type="email"
+                  value={company.contactEmail || ''}
+                  onChange={(e) => handleCompanyChange('contactEmail', e.target.value)}
+                  className={inputClass}
+                  placeholder="contact@company.com"
+                />
+              </div>
+            </div>
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Company Name *
-              </label>
+              <label className={labelClass}>Company Description *</label>
+              <textarea
+                required
+                rows={4}
+                value={company.description}
+                onChange={(e) => handleCompanyChange('description', e.target.value)}
+                className={inputClass}
+                placeholder="Describe your company, services, and key capabilities..."
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>Capabilities</label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {company.capabilities?.map((capability, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded bg-indigo-50 text-indigo-600"
+                  >
+                    {capability}
+                    <button
+                      type="button"
+                      onClick={() => removeCapability(capability)}
+                      className="text-indigo-400 hover:text-indigo-700 transition-colors"
+                      title="Remove"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                ))}
+              </div>
               <input
                 type="text"
-                required
-                value={company.name}
-                onChange={(e) => handleCompanyChange('name', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="Enter company name"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Industry *
-              </label>
-              <select
-                required
-                value={company.industry}
-                onChange={(e) => handleCompanyChange('industry', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-              >
-                <option value="">Select industry</option>
-                <option value="Technology">Technology</option>
-                <option value="Healthcare">Healthcare</option>
-                <option value="Finance">Finance</option>
-                <option value="Manufacturing">Manufacturing</option>
-                <option value="Construction">Construction</option>
-                <option value="Consulting">Consulting</option>
-                <option value="Education">Education</option>
-                <option value="Energy">Energy</option>
-                <option value="Telecommunications">Telecommunications</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Website
-              </label>
-              <input
-                type="url"
-                value={company.website || ''}
-                onChange={(e) => handleCompanyChange('website', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="https://company.com"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Contact Email
-              </label>
-              <input
-                type="email"
-                value={company.contactEmail || ''}
-                onChange={(e) => handleCompanyChange('contactEmail', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="contact@company.com"
+                placeholder="Add capability and press Enter"
+                className={inputClass}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleCapabilityAdd(e.currentTarget.value);
+                    e.currentTarget.value = '';
+                  }
+                }}
               />
             </div>
           </div>
         </div>
 
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Company Description *
-          </label>
-          <textarea
-            required
-            rows={4}
-            value={company.description}
-            onChange={(e) => handleCompanyChange('description', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-            placeholder="Describe your company, services, and key capabilities..."
-          />
-        </div>
-
-        <div className="mb-6">
-          <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-4">Capabilities</h3>
-          <div className="flex flex-wrap gap-2 mb-3">
-            {company.capabilities?.map((capability, index) => (
-              <span
-                key={index}
-                className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
-              >
-                {capability}
-                <button
-                  type="button"
-                  onClick={() => removeCapability(capability)}
-                  className="text-indigo-600 hover:text-indigo-800"
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-          </div>
-          <input
-            type="text"
-            placeholder="Add capability (press Enter)"
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleCapabilityAdd(e.currentTarget.value);
-                e.currentTarget.value = '';
-              }
-            }}
-          />
-        </div>
-
-        <div className="mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-md font-semibold text-gray-900 dark:text-white">Products & Services</h3>
-            <div className="flex items-center gap-4">
+        {/* ── Add Products ── */}
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Add Products</h3>
+            <div className="flex items-center gap-2">
+              {!company.id && (
+                <span className="text-[10px] text-gray-400 italic">Save company first</span>
+              )}
               <div className="relative">
                 <input
                   type="file"
@@ -402,176 +404,170 @@ export default function CompanyProfileSection() {
                 />
                 <label
                   htmlFor="csv-import"
-                  className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                  className={`px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide rounded-lg transition-colors ${
                     csvImporting || !company.id
-                      ? 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
-                      : 'bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100 cursor-pointer'
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 cursor-pointer'
                   }`}
                 >
-                  {csvImporting ? 'Importing...' : '📄 Import CSV'}
+                  {csvImporting ? 'Importing...' : 'Import CSV'}
                 </label>
               </div>
-              {!company.id && (
-                <span className="text-sm text-gray-500">Save company first</span>
-              )}
             </div>
           </div>
 
           {importResults && (
-            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <h4 className="font-medium text-green-800 mb-2">Import Results</h4>
-              <div className="text-sm text-green-700">
-                <p>✅ Successful: {importResults.results?.successful || 0}</p>
-                <p>❌ Failed: {importResults.results?.failed || 0}</p>
-                <p>📊 Total: {importResults.results?.total || 0}</p>
-                {importResults.results?.errors?.length > 0 && (
-                  <details className="mt-2">
-                    <summary className="cursor-pointer font-medium">View Errors</summary>
-                    <ul className="mt-2 text-xs space-y-1">
-                      {importResults.results.errors.map((error: string, index: number) => (
-                        <li key={index} className="text-red-600">• {error}</li>
-                      ))}
-                    </ul>
-                  </details>
-                )}
+            <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+              <h4 className="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-1">Import Complete</h4>
+              <div className="flex items-center gap-4 text-xs text-emerald-700">
+                <span><strong className="tabular-nums">{importResults.results?.successful || 0}</strong> successful</span>
+                <span><strong className="tabular-nums">{importResults.results?.failed || 0}</strong> failed</span>
+                <span><strong className="tabular-nums">{importResults.results?.total || 0}</strong> total</span>
               </div>
+              {importResults.results?.errors?.length > 0 && (
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-[10px] font-semibold text-emerald-600 uppercase tracking-wide">View Errors</summary>
+                  <ul className="mt-2 text-xs space-y-0.5">
+                    {importResults.results.errors.map((error: string, index: number) => (
+                      <li key={index} className="text-red-600">- {error}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
             </div>
           )}
 
-          <div className="space-y-4">
+          <div className="space-y-2">
             {products.map((product, index) => (
-              <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg">
+              <div key={index} className="grid grid-cols-[1fr_1fr_2fr_auto] gap-2 items-start">
                 <input
                   type="text"
                   value={product.name || ''}
                   onChange={(e) => handleProductChange(index, 'name', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="Product/Service name"
+                  className={inputClass}
+                  placeholder="Product name"
                 />
                 <input
                   type="text"
                   value={product.category || ''}
                   onChange={(e) => handleProductChange(index, 'category', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  className={inputClass}
                   placeholder="Category"
                 />
-                <div className="flex gap-2">
-                  <textarea
-                    value={product.description || ''}
-                    onChange={(e) => handleProductChange(index, 'description', e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="Description"
-                    rows={1}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeProduct(index)}
-                    className="px-4 py-2 text-red-600 hover:text-red-800"
-                  >
-                    Remove
-                  </button>
-                </div>
+                <textarea
+                  value={product.description || ''}
+                  onChange={(e) => handleProductChange(index, 'description', e.target.value)}
+                  className={inputClass}
+                  placeholder="Description"
+                  rows={1}
+                />
+                <button
+                  type="button"
+                  onClick={() => removeProduct(index)}
+                  className="p-2 rounded-lg bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                  title="Remove"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
             ))}
           </div>
+
           <button
             type="button"
             onClick={addProduct}
-            className="mt-4 px-4 py-2 text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+            className="mt-3 flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
           >
-            + Add Product/Service
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Product
           </button>
         </div>
 
+        {/* ── Submit ── */}
         <div className="flex justify-end">
           <button
             type="submit"
             disabled={loading}
-            className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors uppercase tracking-wide"
           >
             {loading ? 'Saving...' : 'Save Profile'}
           </button>
         </div>
       </form>
 
-      {/* Saved Products Section */}
+      {/* ── Saved Products ── */}
       {savedProducts.length > 0 && (
-        <div className="mt-8 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Saved Products ({savedProducts.length})
-          </h2>
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Saved Products ({savedProducts.length})</h3>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {savedProducts.map((product) => (
               <div
                 key={product.id}
-                className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition-shadow"
+                className="rounded-xl border border-gray-200 p-3 hover:border-gray-300 transition-colors"
               >
-                <div className="mb-2">
-                  <h3 className="font-medium text-gray-900 dark:text-white text-sm">
-                    {product.name}
-                  </h3>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <h4 className="text-sm font-semibold text-gray-900 truncate flex-1">{product.name}</h4>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                  <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-semibold rounded bg-slate-100 text-slate-600 uppercase tracking-wide">
                     {product.category}
                   </span>
                 </div>
 
-                <p className="text-xs text-gray-600 dark:text-gray-300 mb-3 line-clamp-3">
-                  {product.description}
-                </p>
+                <p className="text-xs text-gray-500 line-clamp-2 mb-3">{product.description}</p>
 
                 {product.features && product.features.length > 0 && (
                   <div className="mb-3">
-                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Features:</p>
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Features</p>
                     <div className="flex flex-wrap gap-1">
                       {product.features.slice(0, 3).map((feature, index) => (
                         <span
                           key={index}
-                          className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded"
+                          className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded bg-indigo-50 text-indigo-600"
                         >
                           {feature}
                         </span>
                       ))}
                       {product.features.length > 3 && (
-                        <span className="text-xs text-gray-500">
-                          +{product.features.length - 3} more
-                        </span>
+                        <span className="text-[10px] text-gray-400">+{product.features.length - 3}</span>
                       )}
                     </div>
                   </div>
                 )}
 
                 {product.specifications && Object.keys(product.specifications).length > 0 && (
-                  <details className="mt-2">
-                    <summary className="text-xs text-indigo-600 cursor-pointer hover:text-indigo-800">
-                      View Specifications
+                  <details className="mb-2">
+                    <summary className="text-[10px] font-semibold text-indigo-600 cursor-pointer hover:text-indigo-700 uppercase tracking-wide">
+                      View Specs
                     </summary>
-                    <div className="mt-2 text-xs space-y-1">
+                    <div className="mt-2 space-y-1">
                       {Object.entries(product.specifications).slice(0, 5).map(([key, value]) => (
-                        <div key={key} className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-400 capitalize">
-                            {key.replace(/([A-Z])/g, ' $1').trim()}:
-                          </span>
-                          <span className="text-gray-800 dark:text-gray-200 text-right ml-2">
-                            {String(value).substring(0, 30)}
-                            {String(value).length > 30 ? '...' : ''}
+                        <div key={key} className="flex justify-between text-[10px]">
+                          <span className="text-gray-500 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                          <span className="text-gray-700 text-right ml-2 truncate">
+                            {String(value).substring(0, 30)}{String(value).length > 30 ? '...' : ''}
                           </span>
                         </div>
                       ))}
                       {Object.keys(product.specifications).length > 5 && (
-                        <p className="text-gray-500 text-center">
-                          +{Object.keys(product.specifications).length - 5} more specs
+                        <p className="text-[10px] text-gray-400 text-center">
+                          +{Object.keys(product.specifications).length - 5} more
                         </p>
                       )}
                     </div>
                   </details>
                 )}
 
-                <div className="mt-3 pt-2 border-t border-gray-100 dark:border-gray-600">
-                  <p className="text-xs text-gray-400">
-                    Added: {new Date(product.created_at).toLocaleDateString()}
-                  </p>
-                </div>
+                <p className="text-[10px] text-gray-400 pt-2 border-t border-gray-100">
+                  Added {new Date(product.created_at).toLocaleDateString()}
+                </p>
               </div>
             ))}
           </div>
