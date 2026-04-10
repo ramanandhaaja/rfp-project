@@ -27,7 +27,13 @@
       "Bash(git -C /Users/nandha/Documents/nextjs/RFP_New/rfp-project log --pretty=format:\"%h - %s \\(%ar\\)\" -10)",
       "Bash(git -C /Users/nandha/Documents/nextjs/RFP_New/rfp-project diff HEAD~5 --name-only)",
       "mcp__supabase__list_tables",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(openspec new:*)",
+      "Bash(openspec status:*)",
+      "Bash(openspec instructions:*)",
+      "Read(//dev/**)",
+      "Bash(openspec list:*)",
+      "Read(//tmp/**)"
     ],
     "deny": [],
     "ask": []
